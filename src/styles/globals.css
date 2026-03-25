@@ -26,7 +26,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.6;
   overflow-x: hidden;
 }
