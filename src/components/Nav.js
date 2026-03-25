@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import FontSizeWidget from './FontSizeWidget'
 
 const NAV_ITEMS = [
   { id: 'system', label: 'Your System' },
@@ -45,6 +46,7 @@ export default function Nav() {
           {item.label}
         </button>
       ))}
+      <FontSizeWidget />
     </nav>
   )
 }
