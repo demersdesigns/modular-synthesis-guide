@@ -70,7 +70,7 @@ export default function SystemSection() {
         </div>
       </div>
 
-      <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'var(--text-dim)', letterSpacing: '0.1em', marginTop: 8 }}>
+      <div style={{ fontSize: 14, color: 'var(--text-dim)', letterSpacing: '0.05em', marginTop: 8 }}>
         ↑ CLICK ANY MODULE TO JUMP TO ITS REFERENCE ENTRY
       </div>
 
