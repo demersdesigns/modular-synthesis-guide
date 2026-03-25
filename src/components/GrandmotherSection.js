@@ -46,10 +46,10 @@ export default function GrandmotherSection() {
       subtitle: 'Two completely independent voices from one keyboard',
       steps: [
         'Patch <span class="module-ref">Grandmother KB CV OUT</span> → <span class="module-ref">Buff Mult 1U</span>. Send one copy → <span class="module-ref">Osiris</span> V/OCT, leave Grandmother\'s internal oscillators receiving keyboard CV normally.',
-        "Patch <span class="module-ref">Grandmother KB GATE OUT</span> → <span class="module-ref">Buff Mult</span>. One copy fires Grandmother's own ADSR. Send another copy → <span class="module-ref">ForeCastle</span> GATE 1 for the eurorack voice envelope.",
+        'Patch <span class="module-ref">Grandmother KB GATE OUT</span> → <span class="module-ref">Buff Mult</span>. One copy fires Grandmother\'s own ADSR. Send another copy → <span class="module-ref">ForeCastle</span> GATE 1 for the eurorack voice envelope.',
         "Set Grandmother's voice with one character: e.g. OSC 1 sawtooth + OSC 2 narrow pulse, filter half-open, medium resonance, spring reverb at ~30%. This is the \"warm, vintage\" voice.",
         'Set <span class="module-ref">Osiris</span> to a complementary wavetable character — something more digital or complex. Route Osiris → <span class="module-ref">Squawk Dirty To Me</span> → <span class="module-ref">Dual FX</span>.',
-        "Mix both voices: Grandmother's output to one monitoring path. Osiris eurorack path → <span class="module-ref">MEGA-TANG</span> → <span class="module-ref">Stereo Line Out 1U</span>. Balance the two voices to taste.",
+        'Mix both voices: Grandmother\'s output to one monitoring path. Osiris eurorack path → <span class="module-ref">MEGA-TANG</span> → <span class="module-ref">Stereo Line Out 1U</span>. Balance the two voices to taste.',
       ],
       tip: "Detune Osiris by +5 cents from Grandmother's oscillators. The two voices will chorus against each other even when playing in unison — a much thicker combined sound than either alone.",
       tags: ['melodic', 'intermediate'],
