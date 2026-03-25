@@ -7,6 +7,11 @@
   --accent: #60a5fa;
   --text: #e5e5e5;
   --text-muted: #999999;
+  --text-dim: #555555;
+  --cv: #60a5fa;
+  --audio: #fb923c;
+  --gate: #34d399;
+  --mod: #a78bfa;
   font-size: 17px; /* base — changed by FontSizeWidget, min 16px */
 }
 
@@ -129,7 +134,7 @@ p { color: var(--text-muted); margin-bottom: 12px; }
   background: var(--bg);
   border: 1px solid var(--border);
   padding: 8px 6px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-muted);
   text-align: center;
   cursor: pointer;
@@ -148,7 +153,7 @@ p { color: var(--text-muted); margin-bottom: 12px; }
   color: var(--accent);
 }
 .rack-link-hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-muted);
   opacity: 0;
   transition: opacity 0.15s;
@@ -168,7 +173,7 @@ p { color: var(--text-muted); margin-bottom: 12px; }
 .type-env    { background: #f87171; }
 .type-sample { background: #4ade80; }
 .rack-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-muted);
   margin-bottom: 6px;
 }
