@@ -1,9 +1,7 @@
 import Nav from '../components/Nav'
 import SystemSection from '../components/SystemSection'
 import ConceptsSection from '../components/ConceptsSection'
-import PatchesSection from '../components/PatchesSection'
 import TechniquesSection from '../components/TechniquesSection'
-import GrandmotherSection from '../components/GrandmotherSection'
 import ReferenceSection from '../components/ReferenceSection'
 
 export default function Home() {
@@ -20,9 +18,7 @@ export default function Home() {
 
       <SystemSection />
       <ConceptsSection />
-      <PatchesSection />
       <TechniquesSection />
-      <GrandmotherSection />
       <ReferenceSection />
 
       <footer>

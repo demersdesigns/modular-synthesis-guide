@@ -10,8 +10,8 @@
   --accent3: #40d9ff;
   --accent4: #b040ff;
   --text: #e8e8f0;
-  --text-muted: #6a6a8a;
-  --text-dim: #3a3a5a;
+  --text-muted: #8585a5;
+  --text-dim: #606080;
   --cv: #40d9ff;
   --audio: #ff6b35;
   --gate: #e8ff40;
@@ -244,7 +244,7 @@ p { color: var(--text-muted); margin-bottom: 12px; }
 .type-sample { background: #44ff88; }
 .rack-label {
   font-size: 9px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   margin-bottom: 4px;
   letter-spacing: 0.1em;
 }
@@ -348,8 +348,8 @@ p { color: var(--text-muted); margin-bottom: 12px; }
 .wire-gate { stroke: #e8ff40; }
 .wire-mod { stroke: #b040ff; }
 .mod-text { fill: #e8e8f0; font-size: 9px; font-family: 'Space Mono', monospace; }
-.jack-label { fill: #6a6a8a; font-size: 7px; font-family: 'Space Mono', monospace; }
-.patch-note { fill: #3a3a5a; font-size: 8px; font-family: 'DM Sans', sans-serif; }
+.jack-label { fill: #8585a5; font-size: 7px; font-family: 'Space Mono', monospace; }
+.patch-note { fill: #8585a5; font-size: 8px; font-family: 'DM Sans', sans-serif; }
 
 /* STEPS */
 .steps {
@@ -445,7 +445,7 @@ p { color: var(--text-muted); margin-bottom: 12px; }
 }
 .module-vendor {
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   margin-bottom: 8px;
   font-family: 'Space Mono', monospace;
   letter-spacing: 0.05em;
@@ -576,7 +576,7 @@ footer {
   padding: 48px;
   font-family: 'Space Mono', monospace;
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   letter-spacing: 0.1em;
   border-top: 1px solid var(--border);
 }
