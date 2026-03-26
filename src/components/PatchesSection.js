@@ -1,8 +1,18 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import PatchDiagram from './PatchDiagram'
+import DiagramLightbox from './DiagramLightbox'
 
 function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const triggerRef = useRef(null)
+
+  const openLightbox = () => setLightboxOpen(true)
+  const closeLightbox = () => {
+    setLightboxOpen(false)
+    triggerRef.current?.focus()
+  }
+
   return (
     <div className="patch-card">
       <div className="patch-header">
@@ -17,7 +27,22 @@ function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram
       <div className="patch-body">
         <p className="patch-desc">{desc}</p>
         {diagram && (
-          <div className="patch-diagram">{diagram}</div>
+          <>
+            <div
+              className="patch-diagram patch-diagram-clickable"
+              onClick={openLightbox}
+              role="button"
+              tabIndex={0}
+              aria-label="Expand patch diagram"
+              ref={triggerRef}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') openLightbox() }}
+            >
+              {diagram}
+            </div>
+            {lightboxOpen && (
+              <DiagramLightbox diagram={diagram} title={title} onClose={closeLightbox} />
+            )}
+          </>
         )}
         <div className="steps">
           {steps.map((s, i) => (

@@ -488,6 +488,105 @@ footer {
   text-align: center;
 }
 
+/* DIAGRAM LIGHTBOX */
+.patch-diagram-clickable {
+  cursor: zoom-in;
+  position: relative;
+}
+.patch-diagram-clickable::after {
+  content: 'click to expand';
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.patch-diagram-clickable:hover::after { opacity: 1; }
+
+.dlb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+.dlb-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+}
+.dlb-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dlb-title {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.dlb-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dlb-zoom-controls button,
+.dlb-close {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1;
+  transition: color 0.2s, border-color 0.2s;
+}
+.dlb-zoom-controls button:hover:not(:disabled),
+.dlb-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.dlb-zoom-controls button:disabled { opacity: 0.3; cursor: default; }
+.dlb-zoom-controls span {
+  font-size: 14px;
+  color: var(--text-muted);
+  min-width: 44px;
+  text-align: center;
+}
+.dlb-scroll {
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px;
+  /* reserve height so scaled content doesn't clip */
+  min-height: calc(220px * 3 + 48px);
+}
+.dlb-canvas {
+  display: inline-block;
+  transform-origin: top center;
+  transition: transform 0.15s ease;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   header { padding: 32px 20px; }
