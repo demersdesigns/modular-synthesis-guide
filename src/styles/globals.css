@@ -574,16 +574,11 @@ footer {
 }
 .dlb-scroll {
   overflow: auto;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
   padding: 24px;
-  /* reserve height so scaled content doesn't clip */
-  min-height: calc(220px * 3 + 48px);
 }
 .dlb-canvas {
   display: inline-block;
-  transform-origin: top center;
+  transform-origin: top left;
   transition: transform 0.15s ease;
 }
 
