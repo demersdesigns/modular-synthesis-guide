@@ -1,7 +1,18 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import PatchDiagram from './PatchDiagram'
+import DiagramLightbox from './DiagramLightbox'
 
 function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const triggerRef = useRef(null)
+
+  const openLightbox = () => setLightboxOpen(true)
+  const closeLightbox = () => {
+    setLightboxOpen(false)
+    triggerRef.current?.focus()
+  }
+
   return (
     <div className="patch-card">
       <div className="patch-header">
@@ -16,7 +27,22 @@ function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram
       <div className="patch-body">
         <p className="patch-desc">{desc}</p>
         {diagram && (
-          <div className="patch-diagram" dangerouslySetInnerHTML={{ __html: diagram }} />
+          <>
+            <div
+              className="patch-diagram patch-diagram-clickable"
+              onClick={openLightbox}
+              role="button"
+              tabIndex={0}
+              aria-label="Expand patch diagram"
+              ref={triggerRef}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') openLightbox() }}
+            >
+              {diagram}
+            </div>
+            {lightboxOpen && (
+              <DiagramLightbox diagram={diagram} title={title} onClose={closeLightbox} />
+            )}
+          </>
         )}
         <div className="steps">
           {steps.map((s, i) => (
@@ -46,55 +72,57 @@ const AMBIENT_PATCHES = [
     subtitle: 'A layered, breathing drone that evolves over time',
     tags: ['ambient', 'drone', 'beginner'],
     desc: 'Two oscillators tuned a 5th apart, slowly modulated by LFOs, mixed through MEGA-TANG and sent through reverb. The A-101-2v LPG provides organic filtering as modulation sweeps through it.',
-    diagram: `<svg width="700" height="220" viewBox="0 0 700 220">
-      <rect x="10" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="55" y="38" class="mod-text" text-anchor="middle">QUAD PLFO</text>
-      <circle cx="28" cy="58" r="5" class="jack-out"/><text x="28" y="75" class="jack-label" text-anchor="middle">OUT1</text>
-      <circle cx="48" cy="58" r="5" class="jack-out"/><text x="48" y="75" class="jack-label" text-anchor="middle">OUT2</text>
-      <circle cx="68" cy="58" r="5" class="jack-out"/><text x="68" y="75" class="jack-label" text-anchor="middle">OUT3</text>
-      <circle cx="88" cy="58" r="5" class="jack-out"/><text x="88" y="75" class="jack-label" text-anchor="middle">OUT4</text>
-      <rect x="130" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="175" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-      <circle cx="148" cy="48" r="5" style="fill:#333;stroke:#b040ff"/><text x="148" y="64" class="jack-label" text-anchor="middle">V/OCT</text>
-      <circle cx="168" cy="48" r="5" style="fill:#333;stroke:#b040ff"/><text x="168" y="64" class="jack-label" text-anchor="middle">MORPH</text>
-      <circle cx="193" cy="48" r="5" class="jack-out"/><text x="193" y="64" class="jack-label" text-anchor="middle">OUT</text>
-      <rect x="130" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="175" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-      <circle cx="145" cy="163" r="5" class="jack-gate-in"/><text x="145" y="178" class="jack-label" text-anchor="middle">GATE1</text>
-      <circle cx="168" cy="163" r="5" style="fill:#333;stroke:#b040ff"/><text x="168" y="178" class="jack-label" text-anchor="middle">ATK CV</text>
-      <circle cx="210" cy="163" r="5" class="jack-out"/><text x="210" y="178" class="jack-label" text-anchor="middle">ENV1</text>
-      <rect x="260" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-      <text x="300" y="38" class="mod-text" text-anchor="middle">A-101-2v</text>
-      <text x="300" y="50" class="jack-label" text-anchor="middle">LPG</text>
-      <circle cx="270" cy="65" r="5" class="jack-in"/><text x="270" y="80" class="jack-label" text-anchor="middle">IN</text>
-      <circle cx="290" cy="65" r="5" style="fill:#333;stroke:#b040ff"/><text x="290" y="80" class="jack-label" text-anchor="middle">CTRL</text>
-      <circle cx="330" cy="65" r="5" class="jack-out"/><text x="330" y="80" class="jack-label" text-anchor="middle">OUT</text>
-      <rect x="380" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="425" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-      <circle cx="395" cy="55" r="5" class="jack-in"/><text x="395" y="70" class="jack-label" text-anchor="middle">IN1</text>
-      <circle cx="462" cy="55" r="5" class="jack-out"/><text x="462" y="70" class="jack-label" text-anchor="middle">MIX</text>
-      <rect x="510" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-      <text x="550" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-      <circle cx="520" cy="65" r="5" class="jack-in"/><text x="520" y="80" class="jack-label" text-anchor="middle">INL</text>
-      <circle cx="570" cy="65" r="5" class="jack-out"/><text x="570" y="80" class="jack-label" text-anchor="middle">OUTL</text>
-      <rect x="625" y="20" width="60" height="70" rx="2" class="module-box"/>
-      <text x="655" y="38" class="mod-text" text-anchor="middle">LINE</text>
-      <text x="655" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-      <circle cx="638" cy="65" r="5" class="jack-in"/><text x="638" y="80" class="jack-label" text-anchor="middle">INL</text>
-      <rect x="260" y="120" width="80" height="70" rx="2" class="module-box"/>
-      <text x="300" y="138" class="mod-text" text-anchor="middle">PAMELA'S</text>
-      <circle cx="272" cy="158" r="5" class="jack-gate-out"/><text x="272" y="173" class="jack-label" text-anchor="middle">÷64</text>
-      <path d="M28,53 C28,100 148,100 148,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M48,53 C48,110 168,110 168,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M68,53 C68,120 168,120 168,158" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M272,153 L245,153 L245,163 L150,163" class="wire-gate" stroke-width="1.5" fill="none"/>
-      <path d="M215,163 L245,163 L245,80 L285,80 L285,70" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M198,43 L250,43 L250,65 L265,65" class="wire-audio" stroke-width="2" fill="none"/>
-      <path d="M335,65 L375,65 L375,55 L390,55" class="wire-audio" stroke-width="2" fill="none"/>
-      <path d="M467,55 L490,55 L490,65 L515,65" class="wire-audio" stroke-width="2" fill="none"/>
-      <path d="M575,65 L600,65 L633,65" class="wire-audio" stroke-width="2" fill="none"/>
-      <text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = modulation CV · Solid = audio signal · Yellow = gate/trigger</text>
-    </svg>`,
+    diagram: <PatchDiagram
+      note="Dashed = modulation CV · Solid = audio signal · Green = gate/trigger"
+      modules={[
+        { id: 'plfo', label: 'QUAD PLFO', x: 10, y: 20, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'out1', label: 'OUT1', type: 'out',  x: 18, y: 38 },
+          { id: 'out2', label: 'OUT2', type: 'out',  x: 38, y: 38 },
+          { id: 'out3', label: 'OUT3', type: 'out',  x: 58, y: 38 },
+          { id: 'out4', label: 'OUT4', type: 'out',  x: 78, y: 38 },
+        ]},
+        { id: 'osiris', label: 'OSIRIS', x: 130, y: 20, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'voct',  label: 'V/OCT', type: 'cv-in', x: 18, y: 28 },
+          { id: 'morph', label: 'MORPH', type: 'cv-in', x: 38, y: 28 },
+          { id: 'out',   label: 'OUT',   type: 'out',   x: 63, y: 28 },
+        ]},
+        { id: 'fc', label: 'FORECASTLE', x: 130, y: 120, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'gate1', label: 'GATE1',  type: 'gate-in', x: 15, y: 43 },
+          { id: 'atkcv', label: 'ATK CV', type: 'cv-in',   x: 38, y: 43 },
+          { id: 'env1',  label: 'ENV1',   type: 'out',     x: 80, y: 43 },
+        ]},
+        { id: 'lpg', label: 'A-101-2v', sublabel: 'LPG', x: 260, y: 20, w: 80, h: 70, highlight: true, jacks: [
+          { id: 'in',   label: 'IN',   type: 'in',    x: 10, y: 45 },
+          { id: 'ctrl', label: 'CTRL', type: 'cv-in', x: 30, y: 45 },
+          { id: 'out',  label: 'OUT',  type: 'out',   x: 70, y: 45 },
+        ]},
+        { id: 'mega', label: 'MEGA-TANG', x: 380, y: 20, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'in1', label: 'IN1', type: 'in',  x: 15, y: 35 },
+          { id: 'mix', label: 'MIX', type: 'out', x: 82, y: 35 },
+        ]},
+        { id: 'dualfx', label: 'DUAL FX', x: 510, y: 20, w: 80, h: 70, highlight: true, jacks: [
+          { id: 'inl',  label: 'INL',  type: 'in',  x: 10, y: 45 },
+          { id: 'outl', label: 'OUTL', type: 'out', x: 60, y: 45 },
+        ]},
+        { id: 'lineout', label: 'LINE', sublabel: 'OUT 1U', x: 625, y: 20, w: 60, h: 70, jacks: [
+          { id: 'inl', label: 'INL', type: 'in', x: 13, y: 45 },
+        ]},
+        { id: 'pams', label: "PAMELA'S", x: 260, y: 120, w: 80, h: 70, jacks: [
+          { id: 'div64', label: '÷64', type: 'gate-out', x: 12, y: 38 },
+        ]},
+      ]}
+      wires={[
+        { from: 'plfo.out1', to: 'osiris.voct',  type: 'mod',   d: 'M28,53 C28,100 148,100 148,43' },
+        { from: 'plfo.out2', to: 'osiris.morph', type: 'mod',   d: 'M48,53 C48,110 168,110 168,43' },
+        { from: 'plfo.out3', to: 'fc.atkcv',     type: 'mod',   d: 'M68,53 C68,120 168,120 168,158' },
+        { from: 'pams.div64', to: 'fc.gate1',    type: 'gate',  d: 'M272,153 L245,153 L245,163 L150,163' },
+        { from: 'fc.env1',   to: 'lpg.ctrl',     type: 'mod',   d: 'M215,163 L245,163 L245,80 L285,80 L285,70' },
+        { from: 'osiris.out', to: 'lpg.in',      type: 'audio', d: 'M198,43 L250,43 L250,65 L265,65' },
+        { from: 'lpg.out',   to: 'mega.in1',     type: 'audio', via: [[375, 65], [375, 55]] },
+        { from: 'mega.mix',  to: 'dualfx.inl',   type: 'audio', via: [[490, 55], [490, 65]] },
+        { from: 'dualfx.outl', to: 'lineout.inl', type: 'audio', via: [[600, 65]] },
+      ]}
+    />,
     steps: [
       'Set <span class="module-ref">Quad PLFO</span> to very slow rates (0.1–0.01 Hz). These will be your gentle modulation sources throughout.',
       'Patch <span class="module-ref">Quad PLFO</span> <span class="jack-ref">OUT 1</span> → <span class="module-ref">Quadratt</span> → <span class="module-ref">Osiris</span> <span class="jack-ref">V/OCT</span>. Attenuate heavily so pitch drifts only ±0.2 semitones.',
