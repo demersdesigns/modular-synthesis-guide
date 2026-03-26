@@ -2,8 +2,25 @@
 import { useState, useRef } from 'react'
 import PatchDiagram from './PatchDiagram'
 import DiagramLightbox from './DiagramLightbox'
+import {
+  AMBIENT_TEXTURE_LOOP,
+  ENVELOPE_CASCADE_SHIMMER,
+  CLOCKED_WAVETABLE_MEDITATION,
+  INDUSTRIAL_TECHNO_DRIVE,
+  POLYRHYTHMIC_RAMPLE,
+  DARK_MINIMAL_BASSLINE,
+  BLOOM_FRACTAL_MELODY,
+  THREE_SEQUENCER_POLYRHYTHM,
+  DUAL_OSCILLATOR_LEAD,
+  SAMPLE_SYNTH_UNISON,
+  LPG_DRUM_MACHINE,
+  FORECASTLE_PERCUSSION,
+  SELF_PATCHING_FEEDBACK,
+  MODULATION_CROSSFADE,
+} from '../utils/patchDiagrams'
 
 function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram }) {
+  const [open, setOpen] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const triggerRef = useRef(null)
 
@@ -13,20 +30,35 @@ function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram
     triggerRef.current?.focus()
   }
 
+  // Normalize HTML string diagrams to React elements for DiagramLightbox
+  const diagramEl = diagram
+    ? (typeof diagram === 'string'
+        ? <div dangerouslySetInnerHTML={{ __html: diagram }} />
+        : diagram)
+    : null
   return (
     <div className="patch-card">
-      <div className="patch-header">
+      <div
+        className="patch-header"
+        onClick={() => setOpen(o => !o)}
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+      >
         <div>
           <div className="patch-title">{title}</div>
           {subtitle && <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{subtitle}</div>}
         </div>
-        <div className="patch-tags">
-          {tags.map(t => <span key={t} className={`tag tag-${t}`}>{t}</span>)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="patch-tags">
+            {tags.map(t => <span key={t} className={`tag tag-${t}`}>{t}</span>)}
+          </div>
+          <span style={{ color: 'var(--text-muted)', fontSize: 18, lineHeight: 1, flexShrink: 0 }}>
+            {open ? '▲' : '▼'}
+          </span>
         </div>
       </div>
-      <div className="patch-body">
+      {open && <div className="patch-body">
         <p className="patch-desc">{desc}</p>
-        {diagram && (
+        {diagramEl && (
           <>
             <div
               className="patch-diagram patch-diagram-clickable"
@@ -37,10 +69,10 @@ function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram
               ref={triggerRef}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') openLightbox() }}
             >
-              {diagram}
+              {diagramEl}
             </div>
             {lightboxOpen && (
-              <DiagramLightbox diagram={diagram} title={title} onClose={closeLightbox} />
+              <DiagramLightbox diagram={diagramEl} title={title} onClose={closeLightbox} />
             )}
           </>
         )}
@@ -61,7 +93,7 @@ function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram
             <span dangerouslySetInnerHTML={{ __html: variation }} />
           </div>
         )}
-      </div>
+      </div>}
     </div>
   )
 }
@@ -138,6 +170,7 @@ const AMBIENT_PATCHES = [
   },
   {
     title: 'Ambient Texture Loop',
+    diagram: AMBIENT_TEXTURE_LOOP,
     subtitle: 'Layered samples + oscillator, triggered slowly',
     tags: ['ambient', 'intermediate'],
     desc: 'Use Rample to play atmospheric texture samples triggered at slow, irregular intervals by Pamela\'s euclidean outputs. Layer with Osiris for tonal grounding.',
@@ -153,6 +186,7 @@ const AMBIENT_PATCHES = [
   },
   {
     title: 'Envelope Cascade Shimmer',
+    diagram: ENVELOPE_CASCADE_SHIMMER,
     subtitle: 'ForeCastle chain creates a cascading, harp-like bloom',
     tags: ['ambient', 'melodic', 'intermediate'],
     desc: "Use ForeCastle's End-of-Cycle chaining to fire four envelopes in sequence from a single trigger. Each envelope modulates a different parameter — the result is a rich, multi-layered bloom that unfolds over several seconds.",
@@ -167,6 +201,7 @@ const AMBIENT_PATCHES = [
   },
   {
     title: 'Clocked Wavetable Meditation',
+    diagram: CLOCKED_WAVETABLE_MEDITATION,
     subtitle: 'Slow Mimetic sequence + morphing Osiris + long reverb',
     tags: ['ambient', 'generative', 'beginner'],
     desc: 'A beginner-friendly ambient patch: Mimetic Digitalis provides slow, programmed pitch changes while ForeCastle shapes each note with a long, lyrical envelope. The key is restraint — few notes, long reverb, gentle movement.',
@@ -184,6 +219,7 @@ const AMBIENT_PATCHES = [
 const TECHNO_PATCHES = [
   {
     title: 'Industrial Techno Drive',
+    diagram: INDUSTRIAL_TECHNO_DRIVE,
     subtitle: 'Hard kick + bass sequencing mixed through MEGA-TANG',
     tags: ['techno', 'rhythmic', 'intermediate'],
     desc: 'Rample drives the kick drum, Osiris handles the bass sequence via Steppy 1U, and MEGA-TANG mixes and pans all voices into a tight stereo output. Squawk Dirty To Me filters the bass with resonant dirt.',
@@ -199,6 +235,7 @@ const TECHNO_PATCHES = [
   },
   {
     title: 'Polyrhythmic Rample Workout',
+    diagram: POLYRHYTHMIC_RAMPLE,
     subtitle: '4 drum channels at different euclidean densities',
     tags: ['techno', 'rhythmic', 'beginner'],
     desc: 'A focused percussion-only patch that exploits the full breadth of Pamela\'s rhythmic capabilities. Four Rample channels each receive a different euclidean or probabilistic gate pattern — no melodic content, just interlocking polyrhythmic groove.',
@@ -213,6 +250,7 @@ const TECHNO_PATCHES = [
   },
   {
     title: 'Dark Minimal Bassline',
+    diagram: DARK_MINIMAL_BASSLINE,
     subtitle: 'Steppy + Squawk Dirty + ForeCastle pitch-drop envelope',
     tags: ['techno', 'melodic', 'intermediate'],
     desc: 'A raw, minimalist bass patch designed for the dark end of the techno spectrum. Sparse Steppy gate patterns, heavy Squawk Dirty filter resonance, and ForeCastle\'s pitch-drop envelope give it an aggressive, sub-heavy character.',
@@ -230,6 +268,7 @@ const TECHNO_PATCHES = [
 const GENERATIVE_PATCHES = [
   {
     title: 'Bloom Fractal Melody',
+    diagram: BLOOM_FRACTAL_MELODY,
     subtitle: "Self-evolving melodic sequence using Bloom's mutation engine",
     tags: ['generative', 'melodic', 'intermediate'],
     desc: 'Bloom generates evolving melodic variations from a seed pattern. Clep Diaz adds additional random pitch events. The result is a melody that sounds composed but never repeats.',
@@ -245,6 +284,7 @@ const GENERATIVE_PATCHES = [
   },
   {
     title: 'Three-Sequencer Polyrhythm',
+    diagram: THREE_SEQUENCER_POLYRHYTHM,
     subtitle: 'Bloom, Steppy, and Mimetic D. at coprime lengths',
     tags: ['generative', 'rhythmic', 'advanced'],
     desc: 'Run Bloom at 12 steps, Steppy at 8 steps, and Mimetic Digitalis at 9 steps — all from the same clock. Because these lengths share no common factor, the sequences drift in and out of phase for a very long time before realigning.',
@@ -262,6 +302,7 @@ const GENERATIVE_PATCHES = [
 const MELODIC_PATCHES = [
   {
     title: 'Dual Oscillator Lead Voice',
+    diagram: DUAL_OSCILLATOR_LEAD,
     subtitle: 'Classic dual-VCO voice with filter and envelope',
     tags: ['melodic', 'beginner'],
     desc: 'The most classic synthesizer voice: two oscillators, an envelope, a filter, and reverb. Your system has all the pieces for a powerful, expressive lead instrument.',
@@ -277,6 +318,7 @@ const MELODIC_PATCHES = [
   },
   {
     title: 'Sample + Synth Unison',
+    diagram: SAMPLE_SYNTH_UNISON,
     subtitle: 'Rample pitched sample layered with Osiris for hybrid timbre',
     tags: ['melodic', 'intermediate'],
     desc: 'Layer a pitched sample from Rample with Osiris in unison. When both track the same pitch CV and are detuned slightly, the result is a rich hybrid sound that blends the character of a real instrument with the flexibility of a synthesizer.',
@@ -294,6 +336,7 @@ const MELODIC_PATCHES = [
 const PERCUSSIVE_PATCHES = [
   {
     title: 'LPG Drum Machine',
+    diagram: LPG_DRUM_MACHINE,
     subtitle: 'Organic percussion using the A-101-2v Low Pass Gate',
     tags: ['rhythmic', 'intermediate'],
     desc: 'The A-101-2v LPG responds to triggers like a traditional acoustic instrument — no click, organic decay. Use it to make synthesized percussion that breathes naturally.',
@@ -308,6 +351,7 @@ const PERCUSSIVE_PATCHES = [
   },
   {
     title: 'ForeCastle Envelope Percussion',
+    diagram: FORECASTLE_PERCUSSION,
     subtitle: 'All four ForeCastle channels driving four distinct drum voices',
     tags: ['rhythmic', 'intermediate'],
     desc: "Exploit ForeCastle's four independent channels to give each Rample channel its own custom envelope — controlling volume dynamics, pitch transients, and filter sweeps individually.",
@@ -325,6 +369,7 @@ const PERCUSSIVE_PATCHES = [
 const EXPERIMENTAL_PATCHES = [
   {
     title: 'Self-Patching Feedback Loop',
+    diagram: SELF_PATCHING_FEEDBACK,
     subtitle: 'Audio-rate modulation and controlled chaos',
     tags: ['experimental', 'advanced'],
     desc: 'Route audio outputs back into CV inputs to create self-modulating systems. At audio rate, these create timbral complexity; at slow rates, they create unexpected emergent behavior.',
@@ -340,6 +385,7 @@ const EXPERIMENTAL_PATCHES = [
   },
   {
     title: 'Modulation Crossfade Network',
+    diagram: MODULATION_CROSSFADE,
     subtitle: 'MEGA-TANG Level CVs create automated mix morphing',
     tags: ['experimental', 'ambient', 'intermediate'],
     desc: "MEGA-TANG's four Level CV inputs let you automate the relative balance between four audio sources simultaneously. By driving each with an out-of-phase LFO, you create a constantly morphing mix where different elements drift in and out.",
