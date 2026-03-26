@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import FontSizeWidget from './FontSizeWidget'
 
 const NAV_ITEMS = [
   { id: 'system', label: 'Your System' },
@@ -70,6 +71,7 @@ export default function Nav() {
           </Link>
         )
       })}
+      <FontSizeWidget />
     </nav>
   )
 }

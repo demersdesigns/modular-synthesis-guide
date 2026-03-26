@@ -1,5 +1,7 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
+import PatchDiagram from './PatchDiagram'
+import DiagramLightbox from './DiagramLightbox'
 import {
   AMBIENT_TEXTURE_LOOP,
   ENVELOPE_CASCADE_SHIMMER,
@@ -17,119 +19,23 @@ import {
   MODULATION_CROSSFADE,
 } from '../utils/patchDiagrams'
 
-function DiagramModal({ html, onClose }) {
-  const containerRef = useRef(null)
-  const scaleRef = useRef(1.5)
-  const posRef = useRef({ x: 0, y: 0 })
-  const draggingRef = useRef(false)
-  const dragStartRef = useRef({ x: 0, y: 0 })
-  const [transform, setTransform] = useState({ scale: 1.5, pos: { x: 0, y: 0 } })
-  const [isDragging, setIsDragging] = useState(false)
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const onWheel = (e) => {
-      e.preventDefault()
-      const rect = el.getBoundingClientRect()
-      const cx = e.clientX - rect.left - rect.width / 2
-      const cy = e.clientY - rect.top - rect.height / 2
-      const factor = e.deltaY < 0 ? 1.12 : 0.89
-      const oldScale = scaleRef.current
-      const newScale = Math.min(Math.max(oldScale * factor, 0.3), 10)
-      const p = posRef.current
-      const newPos = {
-        x: cx - (cx - p.x) * (newScale / oldScale),
-        y: cy - (cy - p.y) * (newScale / oldScale),
-      }
-      scaleRef.current = newScale
-      posRef.current = newPos
-      setTransform({ scale: newScale, pos: newPos })
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [])
-
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  const onMouseDown = (e) => {
-    draggingRef.current = true
-    setIsDragging(true)
-    dragStartRef.current = { x: e.clientX - posRef.current.x, y: e.clientY - posRef.current.y }
-    e.preventDefault()
-  }
-  const onMouseMove = (e) => {
-    if (!draggingRef.current) return
-    const newPos = { x: e.clientX - dragStartRef.current.x, y: e.clientY - dragStartRef.current.y }
-    posRef.current = newPos
-    setTransform(t => ({ ...t, pos: newPos }))
-  }
-  const onMouseUp = () => { draggingRef.current = false; setIsDragging(false) }
-
-  return (
-    <div
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,10,0.93)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-    >
-      <div
-        ref={containerRef}
-        onClick={e => e.stopPropagation()}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
-        style={{ position: 'relative', width: '90vw', height: '80vh', overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'grab' }}
-      >
-        <div
-          dangerouslySetInnerHTML={{ __html: html }}
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: `translate(calc(-50% + ${transform.pos.x}px), calc(-50% + ${transform.pos.y}px)) scale(${transform.scale})`,
-            transformOrigin: 'center',
-            userSelect: 'none',
-            pointerEvents: 'none',
-          }}
-        />
-      </div>
-      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: 12, alignItems: 'center' }}>
-        <span style={{ color: 'var(--text-muted)', fontSize: 11, fontFamily: 'Space Mono, monospace' }}>
-          scroll to zoom · drag to pan · ESC to close
-        </span>
-        <button
-          onClick={onClose}
-          style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px 14px', fontFamily: 'Space Mono, monospace', fontSize: 11, letterSpacing: 1 }}
-        >
-          ✕ CLOSE
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function DiagramViewer({ html }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div style={{ position: 'relative' }}>
-      <div className="patch-diagram" dangerouslySetInnerHTML={{ __html: html }} />
-      <button
-        onClick={() => setOpen(true)}
-        style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(10,10,15,0.85)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px 10px', fontFamily: 'Space Mono, monospace', fontSize: 10, letterSpacing: 1 }}
-      >
-        EXPAND ↗
-      </button>
-      {open && <DiagramModal html={html} onClose={() => setOpen(false)} />}
-    </div>
-  )
-}
-
 function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram }) {
   const [open, setOpen] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const triggerRef = useRef(null)
+
+  const openLightbox = () => setLightboxOpen(true)
+  const closeLightbox = () => {
+    setLightboxOpen(false)
+    triggerRef.current?.focus()
+  }
+
+  // Normalize HTML string diagrams to React elements for DiagramLightbox
+  const diagramEl = diagram
+    ? (typeof diagram === 'string'
+        ? <div dangerouslySetInnerHTML={{ __html: diagram }} />
+        : diagram)
+    : null
   return (
     <div className="patch-card">
       <div
@@ -152,7 +58,24 @@ function PatchCard({ title, subtitle, tags, desc, steps, tip, variation, diagram
       </div>
       {open && <div className="patch-body">
         <p className="patch-desc">{desc}</p>
-        {diagram && <DiagramViewer html={diagram} />}
+        {diagramEl && (
+          <>
+            <div
+              className="patch-diagram patch-diagram-clickable"
+              onClick={openLightbox}
+              role="button"
+              tabIndex={0}
+              aria-label="Expand patch diagram"
+              ref={triggerRef}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') openLightbox() }}
+            >
+              {diagramEl}
+            </div>
+            {lightboxOpen && (
+              <DiagramLightbox diagram={diagramEl} title={title} onClose={closeLightbox} />
+            )}
+          </>
+        )}
         <div className="steps">
           {steps.map((s, i) => (
             <div key={i} className="step"><div className="step-text" dangerouslySetInnerHTML={{ __html: s }} /></div>
@@ -181,55 +104,57 @@ const AMBIENT_PATCHES = [
     subtitle: 'A layered, breathing drone that evolves over time',
     tags: ['ambient', 'drone', 'beginner'],
     desc: 'Two oscillators tuned a 5th apart, slowly modulated by LFOs, mixed through MEGA-TANG and sent through reverb. The A-101-2v LPG provides organic filtering as modulation sweeps through it.',
-    diagram: `<svg width="700" height="220" viewBox="0 0 700 220">
-      <rect x="10" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="55" y="38" class="mod-text" text-anchor="middle">QUAD PLFO</text>
-      <circle cx="28" cy="58" r="5" class="jack-out"/><text x="28" y="75" class="jack-label" text-anchor="middle">OUT1</text>
-      <circle cx="48" cy="58" r="5" class="jack-out"/><text x="48" y="75" class="jack-label" text-anchor="middle">OUT2</text>
-      <circle cx="68" cy="58" r="5" class="jack-out"/><text x="68" y="75" class="jack-label" text-anchor="middle">OUT3</text>
-      <circle cx="88" cy="58" r="5" class="jack-out"/><text x="88" y="75" class="jack-label" text-anchor="middle">OUT4</text>
-      <rect x="130" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="175" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-      <circle cx="148" cy="48" r="5" style="fill:#333;stroke:#b040ff"/><text x="148" y="64" class="jack-label" text-anchor="middle">V/OCT</text>
-      <circle cx="168" cy="48" r="5" style="fill:#333;stroke:#b040ff"/><text x="168" y="64" class="jack-label" text-anchor="middle">MORPH</text>
-      <circle cx="193" cy="48" r="5" class="jack-out"/><text x="193" y="64" class="jack-label" text-anchor="middle">OUT</text>
-      <rect x="130" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="175" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-      <circle cx="145" cy="163" r="5" class="jack-gate-in"/><text x="145" y="178" class="jack-label" text-anchor="middle">GATE1</text>
-      <circle cx="168" cy="163" r="5" style="fill:#333;stroke:#b040ff"/><text x="168" y="178" class="jack-label" text-anchor="middle">ATK CV</text>
-      <circle cx="210" cy="163" r="5" class="jack-out"/><text x="210" y="178" class="jack-label" text-anchor="middle">ENV1</text>
-      <rect x="260" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-      <text x="300" y="38" class="mod-text" text-anchor="middle">A-101-2v</text>
-      <text x="300" y="50" class="jack-label" text-anchor="middle">LPG</text>
-      <circle cx="270" cy="65" r="5" class="jack-in"/><text x="270" y="80" class="jack-label" text-anchor="middle">IN</text>
-      <circle cx="290" cy="65" r="5" style="fill:#333;stroke:#b040ff"/><text x="290" y="80" class="jack-label" text-anchor="middle">CTRL</text>
-      <circle cx="330" cy="65" r="5" class="jack-out"/><text x="330" y="80" class="jack-label" text-anchor="middle">OUT</text>
-      <rect x="380" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-      <text x="425" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-      <circle cx="395" cy="55" r="5" class="jack-in"/><text x="395" y="70" class="jack-label" text-anchor="middle">IN1</text>
-      <circle cx="462" cy="55" r="5" class="jack-out"/><text x="462" y="70" class="jack-label" text-anchor="middle">MIX</text>
-      <rect x="510" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-      <text x="550" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-      <circle cx="520" cy="65" r="5" class="jack-in"/><text x="520" y="80" class="jack-label" text-anchor="middle">INL</text>
-      <circle cx="570" cy="65" r="5" class="jack-out"/><text x="570" y="80" class="jack-label" text-anchor="middle">OUTL</text>
-      <rect x="625" y="20" width="60" height="70" rx="2" class="module-box"/>
-      <text x="655" y="38" class="mod-text" text-anchor="middle">LINE</text>
-      <text x="655" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-      <circle cx="638" cy="65" r="5" class="jack-in"/><text x="638" y="80" class="jack-label" text-anchor="middle">INL</text>
-      <rect x="260" y="120" width="80" height="70" rx="2" class="module-box"/>
-      <text x="300" y="138" class="mod-text" text-anchor="middle">PAMELA'S</text>
-      <circle cx="272" cy="158" r="5" class="jack-gate-out"/><text x="272" y="173" class="jack-label" text-anchor="middle">÷64</text>
-      <path d="M28,53 C28,100 148,100 148,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M48,53 C48,110 168,110 168,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M68,53 C68,120 168,120 168,158" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M272,153 L245,153 L245,163 L150,163" class="wire-gate" stroke-width="1.5" fill="none"/>
-      <path d="M215,163 L245,163 L245,80 L285,80 L285,70" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-      <path d="M198,43 L250,43 L250,65 L265,65" class="wire-audio" stroke-width="2" fill="none"/>
-      <path d="M335,65 L375,65 L375,55 L390,55" class="wire-audio" stroke-width="2" fill="none"/>
-      <path d="M467,55 L490,55 L490,65 L515,65" class="wire-audio" stroke-width="2" fill="none"/>
-      <path d="M575,65 L600,65 L633,65" class="wire-audio" stroke-width="2" fill="none"/>
-      <text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = modulation CV · Solid = audio signal · Yellow = gate/trigger</text>
-    </svg>`,
+    diagram: <PatchDiagram
+      note="Dashed = modulation CV · Solid = audio signal · Green = gate/trigger"
+      modules={[
+        { id: 'plfo', label: 'QUAD PLFO', x: 10, y: 20, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'out1', label: 'OUT1', type: 'out',  x: 18, y: 38 },
+          { id: 'out2', label: 'OUT2', type: 'out',  x: 38, y: 38 },
+          { id: 'out3', label: 'OUT3', type: 'out',  x: 58, y: 38 },
+          { id: 'out4', label: 'OUT4', type: 'out',  x: 78, y: 38 },
+        ]},
+        { id: 'osiris', label: 'OSIRIS', x: 130, y: 20, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'voct',  label: 'V/OCT', type: 'cv-in', x: 18, y: 28 },
+          { id: 'morph', label: 'MORPH', type: 'cv-in', x: 38, y: 28 },
+          { id: 'out',   label: 'OUT',   type: 'out',   x: 63, y: 28 },
+        ]},
+        { id: 'fc', label: 'FORECASTLE', x: 130, y: 120, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'gate1', label: 'GATE1',  type: 'gate-in', x: 15, y: 43 },
+          { id: 'atkcv', label: 'ATK CV', type: 'cv-in',   x: 38, y: 43 },
+          { id: 'env1',  label: 'ENV1',   type: 'out',     x: 80, y: 43 },
+        ]},
+        { id: 'lpg', label: 'A-101-2v', sublabel: 'LPG', x: 260, y: 20, w: 80, h: 70, highlight: true, jacks: [
+          { id: 'in',   label: 'IN',   type: 'in',    x: 10, y: 45 },
+          { id: 'ctrl', label: 'CTRL', type: 'cv-in', x: 30, y: 45 },
+          { id: 'out',  label: 'OUT',  type: 'out',   x: 70, y: 45 },
+        ]},
+        { id: 'mega', label: 'MEGA-TANG', x: 380, y: 20, w: 90, h: 70, highlight: true, jacks: [
+          { id: 'in1', label: 'IN1', type: 'in',  x: 15, y: 35 },
+          { id: 'mix', label: 'MIX', type: 'out', x: 82, y: 35 },
+        ]},
+        { id: 'dualfx', label: 'DUAL FX', x: 510, y: 20, w: 80, h: 70, highlight: true, jacks: [
+          { id: 'inl',  label: 'INL',  type: 'in',  x: 10, y: 45 },
+          { id: 'outl', label: 'OUTL', type: 'out', x: 60, y: 45 },
+        ]},
+        { id: 'lineout', label: 'LINE', sublabel: 'OUT 1U', x: 625, y: 20, w: 60, h: 70, jacks: [
+          { id: 'inl', label: 'INL', type: 'in', x: 13, y: 45 },
+        ]},
+        { id: 'pams', label: "PAMELA'S", x: 260, y: 120, w: 80, h: 70, jacks: [
+          { id: 'div64', label: '÷64', type: 'gate-out', x: 12, y: 38 },
+        ]},
+      ]}
+      wires={[
+        { from: 'plfo.out1', to: 'osiris.voct',  type: 'mod',   d: 'M28,53 C28,100 148,100 148,43' },
+        { from: 'plfo.out2', to: 'osiris.morph', type: 'mod',   d: 'M48,53 C48,110 168,110 168,43' },
+        { from: 'plfo.out3', to: 'fc.atkcv',     type: 'mod',   d: 'M68,53 C68,120 168,120 168,158' },
+        { from: 'pams.div64', to: 'fc.gate1',    type: 'gate',  d: 'M272,153 L245,153 L245,163 L150,163' },
+        { from: 'fc.env1',   to: 'lpg.ctrl',     type: 'mod',   d: 'M215,163 L245,163 L245,80 L285,80 L285,70' },
+        { from: 'osiris.out', to: 'lpg.in',      type: 'audio', d: 'M198,43 L250,43 L250,65 L265,65' },
+        { from: 'lpg.out',   to: 'mega.in1',     type: 'audio', via: [[375, 65], [375, 55]] },
+        { from: 'mega.mix',  to: 'dualfx.inl',   type: 'audio', via: [[490, 55], [490, 65]] },
+        { from: 'dualfx.outl', to: 'lineout.inl', type: 'audio', via: [[600, 65]] },
+      ]}
+    />,
     steps: [
       'Set <span class="module-ref">Quad PLFO</span> to very slow rates (0.1–0.01 Hz). These will be your gentle modulation sources throughout.',
       'Patch <span class="module-ref">Quad PLFO</span> <span class="jack-ref">OUT 1</span> → <span class="module-ref">Quadratt</span> → <span class="module-ref">Osiris</span> <span class="jack-ref">V/OCT</span>. Attenuate heavily so pitch drifts only ±0.2 semitones.',
