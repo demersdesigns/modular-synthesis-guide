@@ -47,12 +47,41 @@ const MARKERS = [
   { id: 'arrow-cv',    color: '#60a5fa' },
 ]
 
-function buildPath(from, to, via, rawD) {
+// Smooth polyline: rounds each intermediate corner with a quadratic bezier.
+// r = corner radius in SVG units.
+function smoothPolyline(pts, r) {
+  if (pts.length < 2) return ''
+  if (pts.length === 2) return `M${pts[0][0]},${pts[0][1]} L${pts[1][0]},${pts[1][1]}`
+
+  let d = `M${pts[0][0]},${pts[0][1]}`
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i - 1]
+    const [cx, cy] = pts[i]
+    const [nx, ny] = pts[i + 1]
+    const d1 = Math.sqrt((cx - px) ** 2 + (cy - py) ** 2)
+    const d2 = Math.sqrt((nx - cx) ** 2 + (ny - cy) ** 2)
+    const r1 = Math.min(r, d1 / 2)
+    const r2 = Math.min(r, d2 / 2)
+    // approach point (just before corner)
+    const ax = cx - ((cx - px) / d1) * r1
+    const ay = cy - ((cy - py) / d1) * r1
+    // exit point (just after corner)
+    const ex = cx + ((nx - cx) / d2) * r2
+    const ey = cy + ((ny - cy) / d2) * r2
+    d += ` L${ax},${ay} Q${cx},${cy} ${ex},${ey}`
+  }
+  d += ` L${pts[pts.length - 1][0]},${pts[pts.length - 1][1]}`
+  return d
+}
+
+function buildPath(from, to, via, rawD, yOffset = 0) {
   if (rawD) return rawD
   if (!from || !to) return ''
   if (via && via.length > 0) {
-    const pts = [[from.x, from.y], ...via, [to.x, to.y]]
-    return pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ')
+    // yOffset spreads parallel corridor wires apart vertically
+    const adjustedVia = via.map(([x, y]) => [x, y + yOffset])
+    const pts = [[from.x, from.y], ...adjustedVia, [to.x, to.y]]
+    return smoothPolyline(pts, 15)
   }
   // Auto bezier with a horizontal bias
   const dx = to.x - from.x
@@ -68,6 +97,14 @@ export default function PatchDiagram({ modules = [], wires = [], width = 700, he
       jackMap[`${m.id}.${j.id}`] = { x: m.x + j.x, y: m.y + j.y }
     }
   }
+
+  // Spread via-routed wires vertically within the corridor so parallel wires
+  // don't share the same y segment. Spread is symmetric around the original y.
+  const SPREAD_STEP = 4
+  const viaIndices = wires.reduce((acc, w, i) => { if (w.via) acc.push(i); return acc }, [])
+  const halfSpread = ((viaIndices.length - 1) * SPREAD_STEP) / 2
+  const yOffsetByIndex = {}
+  viaIndices.forEach((wireIdx, rank) => { yOffsetByIndex[wireIdx] = rank * SPREAD_STEP - halfSpread })
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
@@ -114,9 +151,27 @@ export default function PatchDiagram({ modules = [], wires = [], width = 700, he
         </g>
       ))}
 
-      {/* ── Wires ── */}
+      {/* ── Wires: pass 1 — knockout casing so crossings show over/under ── */}
       {wires.map((w, i) => {
-        const d = buildPath(jackMap[w.from], jackMap[w.to], w.via, w.d)
+        const yOffset = yOffsetByIndex[i] ?? 0
+        const d = buildPath(jackMap[w.from], jackMap[w.to], w.via, w.d, yOffset)
+        const style = WIRE[w.type] || WIRE.audio
+        return (
+          <path
+            key={`casing-${i}`}
+            d={d}
+            fill="none"
+            stroke="#141414"
+            strokeWidth={style.strokeWidth + 4}
+            strokeDasharray={style.strokeDasharray}
+          />
+        )
+      })}
+
+      {/* ── Wires: pass 2 — colored wire on top ── */}
+      {wires.map((w, i) => {
+        const yOffset = yOffsetByIndex[i] ?? 0
+        const d = buildPath(jackMap[w.from], jackMap[w.to], w.via, w.d, yOffset)
         const style = WIRE[w.type] || WIRE.audio
         return (
           <path
