@@ -1,7 +1,7 @@
 const MODULES = {
   sequencers: [
     { id: 'ref-pamelaspro', name: "Pamela's PRO Workout", vendor: 'ALM Busy Circuits · 8hp', body: 'Master clock, clock divider/multiplier, euclidean rhythm generator, probabilistic gate source, and LFO. The timing brain of your system. Every rhythmic patch starts here.', badge: { label: 'CLOCK / MASTER', color: 'var(--accent)' } },
-    { id: 'ref-steppy', name: 'Steppy 1U', vendor: 'Intellijel · 28hp · 1U', body: '4-track, 16-step gate sequencer with CV output per track. Great for drum patterns and simple melodic gates. Syncs to Pamela\'s clock.', badge: { label: 'SEQUENCER', color: 'var(--accent)' } },
+    { id: 'ref-steppy', name: 'Steppy 1U', vendor: 'Intellijel · 28hp · 1U', body: '4-track, 16-step gate sequencer with four gate outputs (no CV). Great for drum patterns, rhythmic triggers, and driving envelopes. Syncs to Pamela\'s clock.', badge: { label: 'SEQUENCER', color: 'var(--accent)' } },
     { id: 'ref-bloom', name: 'Bloom', vendor: 'Qu-Bit Electronix · 16hp', body: 'Fractal/generative melodic sequencer. Programs a seed sequence and generates evolving variations (branches). Has built-in quantizer. Outputs CV + Gate.', badge: { label: 'GENERATIVE SEQ', color: 'var(--accent)' } },
     { id: 'ref-mimetic', name: 'Mimetic Digitalis', vendor: 'Noise Engineering · 10hp', body: '4-channel, 16-step CV sequencer. No built-in gates — pure CV output on 4 channels simultaneously. Excellent for modulation sequencing and multi-parameter automation.', badge: { label: 'CV SEQUENCER', color: 'var(--accent)' } },
   ],
