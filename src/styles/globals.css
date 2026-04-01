@@ -246,10 +246,10 @@ p { color: var(--text-muted); margin-bottom: 12px; }
 /* SVG PATCH STYLES */
 .module-box           { fill: #1e1e1e; stroke: #333; }
 .module-box-highlight { fill: #252525; stroke: #444; }
-.jack-out      { fill: #1e1e1e; stroke: #60a5fa; }
-.jack-in       { fill: #1e1e1e; stroke: #fb923c; }
-.jack-gate-out { fill: #1e1e1e; stroke: #34d399; }
-.jack-gate-in  { fill: #1e1e1e; stroke: #34d399; }
+.jack-out      { fill: #60a5fa; stroke: #60a5fa; }  /* filled = source */
+.jack-in       { fill: #1e1e1e; stroke: #fb923c; }  /* hollow = destination */
+.jack-gate-out { fill: #34d399; stroke: #34d399; }  /* filled = source */
+.jack-gate-in  { fill: #1e1e1e; stroke: #34d399; }  /* hollow = destination */
 .wire-cv    { stroke: #60a5fa; }
 .wire-audio { stroke: #fb923c; }
 .wire-gate  { stroke: #34d399; }
