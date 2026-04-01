@@ -1,834 +1,770 @@
-// Patch signal flow diagrams — raw SVG strings.
-// CSS classes defined in globals.css:
-//   module-box / module-box-highlight · mod-text · jack-label · patch-note
-//   jack-out (cyan) · jack-in (orange) · jack-gate-out/in (yellow)
-//   inline style="fill:#333;stroke:#b040ff" for CV inputs
-//   wire-audio (orange) · wire-mod (purple dashed) · wire-gate (yellow)
-
-const LEGEND = `<text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = CV modulation · Solid = audio · Yellow = gate/trigger</text>`
+/**
+ * patchDiagrams.js
+ *
+ * All patch signal-flow diagrams, expressed as declarative <PatchDiagram>
+ * elements. No hand-coded SVG coordinates — modules are placed with place()
+ * and wires describe semantic connections.
+ *
+ * Wire routing helpers:
+ *   Cross-row (top ↔ bottom): via: [[x_from, 108], [x_to, 108]]
+ *   Same-row y mismatch (e.g. squawk at y=60 vs y=55): d: 'M…'
+ *   Feedback arcs / cascade arcs: d: 'M… C…'
+ */
+import PatchDiagram from '../components/PatchDiagram'
+import { place, NOTE } from './diagramLayout'
 
 // ─── Ambient / Drone ──────────────────────────────────────────────────────────
 
-export const AMBIENT_TEXTURE_LOOP = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="30" cy="55" r="5" class="jack-gate-out"/><text x="30" y="72" class="jack-label" text-anchor="middle">EU</text>
-  <circle cx="58" cy="55" r="5" class="jack-gate-out"/><text x="58" y="72" class="jack-label" text-anchor="middle">÷16</text>
+export const AMBIENT_TEXTURE_LOOP = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',  id: 'pam',     x: 10,  y: 20,  jacks: [
+      { id: 'eu',    label: 'EU',    type: 'gate-out', x: 20, y: 35 },
+      { id: 'div16', label: '÷16',   type: 'gate-out', x: 52, y: 35 },
+    ]},
+    { key: 'RAMPLE',   id: 'rample',  x: 112, y: 20,  jacks: [
+      { id: 't1',    label: 'T1',    type: 'gate-in',  x: 12, y: 35 },
+      { id: 't2',    label: 'T2',    type: 'gate-in',  x: 30, y: 35 },
+      { id: 'start', label: 'START', type: 'cv-in',    x: 52, y: 35 },
+      { id: 'out',   label: 'OUT',   type: 'out',      x: 75, y: 35 },
+    ]},
+    { key: 'QUAD_VCA', id: 'qvca',    x: 220, y: 20,  jacks: [
+      { id: 'in1',   label: 'IN1',   type: 'in',       x: 12, y: 35 },
+      { id: 'in2',   label: 'IN2',   type: 'in',       x: 32, y: 35 },
+      { id: 'cv',    label: 'CV',    type: 'cv-in',    x: 55, y: 35 },
+      { id: 'out',   label: 'OUT',   type: 'out',      x: 75, y: 35 },
+    ]},
+    { key: 'DUALFX',   id: 'dualfx',  x: 325, y: 20,  jacks: [
+      { id: 'inl',   label: 'INL',   type: 'in',       x: 12, y: 35 },
+      { id: 'outl',  label: 'OUTL',  type: 'out',      x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',  id: 'lineout', x: 418, y: 20,  jacks: [
+      { id: 'inl',   label: 'INL',   type: 'in',       x: 15, y: 45 },
+    ]},
+    { key: 'CLEP',     id: 'clep',    x: 10,  y: 120, jacks: [
+      { id: 'out',   label: 'OUT',   type: 'out',      x: 42, y: 35 },
+    ]},
+    { key: 'OSIRIS',   id: 'osiris',  x: 112, y: 120, jacks: [
+      { id: 'out',   label: 'OUT',   type: 'out',      x: 65, y: 35 },
+    ]},
+    { key: 'QUAD_PLFO',id: 'plfo',    x: 220, y: 120, jacks: [
+      { id: 'out',   label: 'OUT',   type: 'out',      x: 47, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.eu',      to: 'rample.t1',   type: 'gate'  },
+    { from: 'pam.div16',   to: 'rample.t2',   type: 'gate'  },
+    { from: 'clep.out',    to: 'rample.start', type: 'mod',  via: [[52, 108], [164, 108]] },
+    { from: 'osiris.out',  to: 'qvca.in2',    type: 'audio', via: [[177, 108], [252, 108]] },
+    { from: 'plfo.out',    to: 'qvca.cv',     type: 'mod',   via: [[267, 108], [275, 108]] },
+    { from: 'rample.out',  to: 'qvca.in1',    type: 'audio' },
+    { from: 'qvca.out',    to: 'dualfx.inl',  type: 'audio' },
+    { from: 'dualfx.outl', to: 'lineout.inl', type: 'audio', d: 'M393,55 L413,55 L413,65 L433,65' },
+  ]} />
+)
 
-  <rect x="115" y="20" width="85" height="70" rx="2" class="module-box-highlight"/>
-  <text x="157" y="38" class="mod-text" text-anchor="middle">RAMPLE</text>
-  <circle cx="128" cy="55" r="5" class="jack-gate-in"/><text x="128" y="72" class="jack-label" text-anchor="middle">T1</text>
-  <circle cx="150" cy="55" r="5" class="jack-gate-in"/><text x="150" y="72" class="jack-label" text-anchor="middle">T2</text>
-  <circle cx="172" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="172" y="72" class="jack-label" text-anchor="middle">START</text>
-  <circle cx="192" cy="55" r="5" class="jack-out"/><text x="192" y="72" class="jack-label" text-anchor="middle">OUT</text>
+export const ENVELOPE_CASCADE_SHIMMER = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',   id: 'pam',     x: 10,  y: 20, jacks: [
+      { id: 'div32', label: '÷32', type: 'gate-out', x: 35, y: 35 },
+    ]},
+    { key: 'FORECASTLE', id: 'fc',     x: 108, y: 20, w: 115, jacks: [
+      { id: 'g1',  label: 'G1',  type: 'gate-in',  x: 15, y: 35 },
+      { id: 'g2',  label: 'G2',  type: 'gate-in',  x: 33, y: 35 },
+      { id: 'g3',  label: 'G3',  type: 'gate-in',  x: 51, y: 35 },
+      { id: 'e1',  label: 'E1',  type: 'out',      x: 80, y: 35 },
+      { id: 'e2',  label: 'E2',  type: 'out',      x: 100, y: 35 },
+    ]},
+    { key: 'OSIRIS',    id: 'osiris',  x: 246, y: 20, jacks: [
+      { id: 'morph', label: 'MORPH', type: 'cv-in', x: 30, y: 35 },
+      { id: 'out',   label: 'OUT',   type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'LPG',       id: 'lpg',     x: 350, y: 20, jacks: [
+      { id: 'in',   label: 'IN',   type: 'in',    x: 12, y: 40 },
+      { id: 'ctrl', label: 'CTRL', type: 'cv-in', x: 38, y: 40 },
+      { id: 'out',  label: 'OUT',  type: 'out',   x: 73, y: 40 },
+    ]},
+    { key: 'MEGATANG',  id: 'mega',    x: 458, y: 20, jacks: [
+      { id: 'in',    label: 'IN',     type: 'in',    x: 12, y: 35 },
+      { id: 'lvlcv', label: 'LVL CV', type: 'cv-in', x: 40, y: 35 },
+      { id: 'mix',   label: 'MIX',    type: 'out',   x: 78, y: 35 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 560, y: 20, jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.div32', to: 'fc.g1',     type: 'gate' },
+    // Cascade arcs (EoC self-patching) drawn above module
+    { from: 'fc.g1', to: 'fc.g2', type: 'gate', d: 'M123,20 C123,5 141,5 141,20' },
+    { from: 'fc.g2', to: 'fc.g3', type: 'gate', d: 'M141,20 C141,5 159,5 159,20' },
+    { from: 'fc.e1', to: 'lpg.ctrl',    type: 'mod',   d: 'M188,55 L188,98 L388,98 L388,60' },
+    { from: 'fc.e2', to: 'osiris.morph', type: 'mod',   d: 'M208,55 L208,108 L276,108 L276,55' },
+    { from: 'fc.e2', to: 'mega.lvlcv',  type: 'mod',   d: 'M208,55 L208,112 L498,112 L498,55' },
+    { from: 'osiris.out', to: 'lpg.in', type: 'audio', d: 'M311,55 L340,55 L340,60 L362,60' },
+    { from: 'lpg.out',   to: 'mega.in', type: 'audio', d: 'M423,60 L447,60 L447,55 L470,55' },
+    { from: 'mega.mix',  to: 'dualfx.inl', type: 'audio' },
+  ]} />
+)
 
-  <rect x="220" y="20" width="85" height="70" rx="2" class="module-box-highlight"/>
-  <text x="262" y="38" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="233" cy="55" r="5" class="jack-in"/><text x="233" y="72" class="jack-label" text-anchor="middle">IN1</text>
-  <circle cx="253" cy="55" r="5" class="jack-in"/><text x="253" y="72" class="jack-label" text-anchor="middle">IN2</text>
-  <circle cx="273" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="273" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="297" cy="55" r="5" class="jack-out"/><text x="297" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="325" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="365" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="338" cy="55" r="5" class="jack-in"/><text x="338" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="395" cy="55" r="5" class="jack-out"/><text x="395" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="418" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="453" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="453" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="431" cy="65" r="5" class="jack-in"/><text x="431" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="138" class="mod-text" text-anchor="middle">CLEP DIAZ</text>
-  <circle cx="50" cy="158" r="5" class="jack-out"/><text x="50" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="115" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="155" y="138" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="155" cy="158" r="5" class="jack-out"/><text x="155" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="220" y="120" width="90" height="70" rx="2" class="module-box"/>
-  <text x="265" y="138" class="mod-text" text-anchor="middle">QUAD PLFO</text>
-  <circle cx="265" cy="158" r="5" class="jack-out"/><text x="265" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M30,50 L30,95 L128,95 L128,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M58,50 L58,102 L150,102 L150,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M50,153 L50,112 L172,112 L172,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M192,55 L215,55 L215,44 L228,44 L228,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M155,153 L155,108 L253,108 L253,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M265,153 L265,108 L273,108 L273,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M297,55 L320,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M395,55 L413,55 L413,65 L426,65" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
-
-export const ENVELOPE_CASCADE_SHIMMER = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="50" cy="55" r="5" class="jack-gate-out"/><text x="50" y="72" class="jack-label" text-anchor="middle">÷32</text>
-
-  <rect x="110" y="20" width="115" height="70" rx="2" class="module-box-highlight"/>
-  <text x="167" y="35" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <text x="167" y="46" class="jack-label" text-anchor="middle">cascade chain</text>
-  <circle cx="125" cy="58" r="5" class="jack-gate-in"/><text x="125" y="75" class="jack-label" text-anchor="middle">G1</text>
-  <circle cx="148" cy="58" r="5" class="jack-gate-in"/><text x="148" y="75" class="jack-label" text-anchor="middle">G2</text>
-  <circle cx="170" cy="58" r="5" class="jack-gate-in"/><text x="170" y="75" class="jack-label" text-anchor="middle">G3</text>
-  <circle cx="193" cy="58" r="5" class="jack-out"/><text x="193" y="75" class="jack-label" text-anchor="middle">E1</text>
-  <circle cx="213" cy="58" r="5" class="jack-out"/><text x="213" y="75" class="jack-label" text-anchor="middle">E2</text>
-
-  <rect x="248" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="288" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="265" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="265" y="72" class="jack-label" text-anchor="middle">MORPH</text>
-  <circle cx="310" cy="55" r="5" class="jack-out"/><text x="310" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="352" y="20" width="85" height="70" rx="2" class="module-box-highlight"/>
-  <text x="394" y="35" class="mod-text" text-anchor="middle">A-101-2v</text>
-  <text x="394" y="47" class="jack-label" text-anchor="middle">LPG</text>
-  <circle cx="365" cy="60" r="5" class="jack-in"/><text x="365" y="77" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="388" cy="60" r="5" style="fill:#333;stroke:#b040ff"/><text x="388" y="77" class="jack-label" text-anchor="middle">CTRL</text>
-  <circle cx="428" cy="60" r="5" class="jack-out"/><text x="428" y="77" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="460" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="505" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="475" cy="55" r="5" class="jack-in"/><text x="475" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="498" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="498" y="72" class="jack-label" text-anchor="middle">LVL CV</text>
-  <circle cx="538" cy="55" r="5" class="jack-out"/><text x="538" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="558" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="598" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="570" cy="55" r="5" class="jack-in"/><text x="570" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="628" cy="55" r="5" class="jack-out"/><text x="628" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M50,50 L50,30 L110,30 L110,48 L120,48 L120,53" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M136,20 C136,5 148,5 148,20" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M158,20 C158,5 170,5 170,20" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M193,63 L193,100 L388,100 L388,65" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M213,63 L213,108 L265,108 L265,60" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M213,63 L213,115 L498,115 L498,60" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M310,55 L347,55 L347,60 L360,60" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M428,60 L455,60 L455,55 L470,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M538,55 L553,55" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
-
-export const CLOCKED_WAVETABLE_MEDITATION = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="35" cy="55" r="5" class="jack-gate-out"/><text x="35" y="72" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="60" cy="55" r="5" class="jack-gate-out"/><text x="60" y="72" class="jack-label" text-anchor="middle">÷8</text>
-
-  <rect x="112" y="20" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="159" y="38" class="mod-text" text-anchor="middle">MIMETIC D.</text>
-  <circle cx="128" cy="55" r="5" class="jack-gate-in"/><text x="128" y="72" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="152" cy="55" r="5" class="jack-out"/><text x="152" y="72" class="jack-label" text-anchor="middle">CH1</text>
-  <circle cx="175" cy="55" r="5" class="jack-out"/><text x="175" y="72" class="jack-label" text-anchor="middle">CH2</text>
-  <circle cx="198" cy="55" r="5" class="jack-gate-out"/><text x="198" y="72" class="jack-label" text-anchor="middle">GATE</text>
-
-  <rect x="230" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="270" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="245" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="245" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="268" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="268" y="72" class="jack-label" text-anchor="middle">MORPH</text>
-  <circle cx="303" cy="55" r="5" class="jack-out"/><text x="303" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="333" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="373" y="38" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="346" cy="55" r="5" class="jack-in"/><text x="346" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="370" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="370" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="404" cy="55" r="5" class="jack-out"/><text x="404" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="434" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="474" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="447" cy="55" r="5" class="jack-in"/><text x="447" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="505" cy="55" r="5" class="jack-out"/><text x="505" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="528" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="563" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="563" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="541" cy="65" r="5" class="jack-in"/><text x="541" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="55" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="28" cy="158" r="5" class="jack-gate-in"/><text x="28" y="175" class="jack-label" text-anchor="middle">GATE1</text>
-  <circle cx="68" cy="158" r="5" class="jack-out"/><text x="68" y="175" class="jack-label" text-anchor="middle">ENV1</text>
-
-  <path d="M60,50 C90,30 108,30 123,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M60,50 L60,95 L28,95 L28,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M152,55 L230,55 L230,44 L240,44 L240,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M175,50 L175,43 L268,43 L268,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M68,153 L68,108 L370,108 L370,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M303,55 L328,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M303,55 L328,55 L328,44 L341,44 L341,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M404,55 L429,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M505,55 L523,55 L523,65 L536,65" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
+export const CLOCKED_WAVETABLE_MEDITATION = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',   id: 'pam',     x: 10,  y: 20,  jacks: [
+      { id: 'clk',   label: 'CLK', type: 'gate-out', x: 20, y: 35 },
+      { id: 'div8',  label: '÷8',  type: 'gate-out', x: 55, y: 35 },
+    ]},
+    { key: 'MIMETIC',   id: 'mimetic', x: 112, y: 20,  jacks: [
+      { id: 'clk',   label: 'CLK',  type: 'gate-in',  x: 15, y: 35 },
+      { id: 'ch1',   label: 'CH1',  type: 'out',      x: 40, y: 35 },
+      { id: 'ch2',   label: 'CH2',  type: 'out',      x: 63, y: 35 },
+      { id: 'gate',  label: 'GATE', type: 'gate-out', x: 85, y: 35 },
+    ]},
+    { key: 'OSIRIS',    id: 'osiris',  x: 230, y: 20,  jacks: [
+      { id: 'voct',  label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'morph', label: 'MORPH', type: 'cv-in', x: 38, y: 35 },
+      { id: 'out',   label: 'OUT',   type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'QUAD_VCA',  id: 'qvca',    x: 333, y: 20,  jacks: [
+      { id: 'in',    label: 'IN',    type: 'in',    x: 12, y: 35 },
+      { id: 'cv',    label: 'CV',    type: 'cv-in', x: 42, y: 35 },
+      { id: 'out',   label: 'OUT',   type: 'out',   x: 72, y: 35 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 430, y: 20,  jacks: [
+      { id: 'inl',   label: 'INL',   type: 'in',  x: 12, y: 35 },
+      { id: 'outl',  label: 'OUTL',  type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',   id: 'lineout', x: 524, y: 20,  jacks: [
+      { id: 'inl',   label: 'INL',   type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',      x: 10,  y: 120, w: 95, jacks: [
+      { id: 'g1',    label: 'GATE1', type: 'gate-in', x: 15, y: 35 },
+      { id: 'e1',    label: 'ENV1',  type: 'out',     x: 67, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.clk',    to: 'mimetic.clk', type: 'gate'  },
+    { from: 'pam.div8',   to: 'fc.g1',       type: 'gate',  via: [[65, 108], [25, 108]] },
+    { from: 'mimetic.ch1', to: 'osiris.voct', type: 'audio' },
+    { from: 'mimetic.ch2', to: 'osiris.morph',type: 'mod'   },
+    { from: 'fc.e1',      to: 'qvca.cv',     type: 'mod',   via: [[77, 108], [375, 108]] },
+    { from: 'osiris.out', to: 'qvca.in',     type: 'audio' },
+    { from: 'qvca.out',   to: 'dualfx.inl',  type: 'audio' },
+    { from: 'dualfx.outl',to: 'lineout.inl', type: 'audio', d: 'M498,55 L515,55 L515,65 L539,65' },
+  ]} />
+)
 
 // ─── Techno / Industrial ──────────────────────────────────────────────────────
 
-export const INDUSTRIAL_TECHNO_DRIVE = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">STEPPY</text>
-  <circle cx="25" cy="55" r="5" class="jack-gate-in"/><text x="25" y="72" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="50" cy="55" r="5" class="jack-out"/><text x="50" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="75" cy="55" r="5" class="jack-gate-out"/><text x="75" y="72" class="jack-label" text-anchor="middle">GATE</text>
+// CORRECTED: Steppy has gate outputs only (no CV).
+// Mimetic Digitalis now provides pitch CV to Osiris V/OCT.
+export const INDUSTRIAL_TECHNO_DRIVE = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'STEPPY',   id: 'steppy',  x: 10,  y: 20,  jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-in',  x: 15, y: 35 },
+      { id: 'g1',  label: 'G1',  type: 'gate-out', x: 58, y: 35 },
+    ]},
+    { key: 'OSIRIS',   id: 'osiris',  x: 112, y: 20,  jacks: [
+      { id: 'voct', label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'SQUAWK',   id: 'squawk',  x: 214, y: 20,  jacks: [
+      { id: 'in',     label: 'IN',     type: 'in',    x: 12, y: 40 },
+      { id: 'cutoff', label: 'CUTOFF', type: 'cv-in', x: 38, y: 40 },
+      { id: 'out',    label: 'OUT',    type: 'out',   x: 83, y: 40 },
+    ]},
+    { key: 'MEGATANG', id: 'mega',    x: 332, y: 20,  jacks: [
+      { id: 'in1',  label: 'IN1',  type: 'in',  x: 12, y: 35 },
+      { id: 'in2',  label: 'IN2',  type: 'in',  x: 32, y: 35 },
+      { id: 'mix',  label: 'MIX',  type: 'out', x: 78, y: 35 },
+    ]},
+    { key: 'DUALFX',   id: 'dualfx',  x: 445, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',  id: 'lineout', x: 540, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'PAMELAS',  id: 'pam',     x: 10,  y: 120, jacks: [
+      { id: 'clk',  label: 'CLK',  type: 'gate-out', x: 20, y: 35 },
+      { id: 'kick', label: 'KICK', type: 'gate-out', x: 60, y: 35 },
+    ]},
+    { key: 'MIMETIC',  id: 'mimetic', x: 112, y: 120, jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-in', x: 15, y: 35 },
+      { id: 'ch1', label: 'CH1', type: 'out',     x: 60, y: 35 },
+    ]},
+    { key: 'GENERATE3',id: 'gen3',    x: 230, y: 120, jacks: [
+      { id: 'trig', label: 'TRIG', type: 'gate-in', x: 15, y: 35 },
+      { id: 'env',  label: 'ENV',  type: 'out',     x: 65, y: 35 },
+    ]},
+    { key: 'RAMPLE',   id: 'rample',  x: 342, y: 120, jacks: [
+      { id: 't1',  label: 'T1',  type: 'gate-in', x: 12, y: 35 },
+      { id: 'out', label: 'OUT', type: 'out',     x: 72, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.clk',    to: 'steppy.clk',   type: 'gate',  via: [[30, 108], [25, 108]] },
+    { from: 'pam.clk',    to: 'mimetic.clk',  type: 'gate',  d: 'M30,155 L127,155' },
+    { from: 'pam.kick',   to: 'rample.t1',    type: 'gate',  via: [[70, 108], [354, 108]] },
+    { from: 'steppy.g1',  to: 'gen3.trig',    type: 'gate',  via: [[68, 108], [245, 108]] },
+    { from: 'mimetic.ch1',to: 'osiris.voct',  type: 'audio', via: [[172, 108], [127, 108]] },
+    { from: 'gen3.env',   to: 'squawk.cutoff',type: 'mod',   via: [[295, 108], [252, 108]] },
+    { from: 'osiris.out', to: 'squawk.in',    type: 'audio', d: 'M177,55 L205,55 L205,60 L226,60' },
+    { from: 'squawk.out', to: 'mega.in1',     type: 'audio', d: 'M297,60 L319,60 L319,55 L344,55' },
+    { from: 'rample.out', to: 'mega.in2',     type: 'audio', via: [[414, 108], [364, 108]] },
+    { from: 'mega.mix',   to: 'dualfx.inl',   type: 'audio' },
+    { from: 'dualfx.outl',to: 'lineout.inl',  type: 'audio', d: 'M513,55 L533,55 L533,65 L555,65' },
+  ]} />
+)
 
-  <rect x="112" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="152" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="127" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="127" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="175" cy="55" r="5" class="jack-out"/><text x="175" y="72" class="jack-label" text-anchor="middle">OUT</text>
+export const POLYRHYTHMIC_RAMPLE = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',   id: 'pam',     x: 10,  y: 20,  w: 90, jacks: [
+      { id: 'out1', label: '1', type: 'gate-out', x: 13, y: 35 },
+      { id: 'out2', label: '2', type: 'gate-out', x: 30, y: 35 },
+      { id: 'out3', label: '3', type: 'gate-out', x: 47, y: 35 },
+      { id: 'out4', label: '4', type: 'gate-out', x: 64, y: 35 },
+      { id: 'out5', label: '5', type: 'gate-out', x: 81, y: 35 },
+    ]},
+    { key: 'RAMPLE',    id: 'rample',  x: 122, y: 20,  w: 90, jacks: [
+      { id: 't1',   label: 'T1',  type: 'gate-in', x: 13, y: 35 },
+      { id: 't2',   label: 'T2',  type: 'gate-in', x: 30, y: 35 },
+      { id: 't3',   label: 'T3',  type: 'gate-in', x: 47, y: 35 },
+      { id: 't4',   label: 'T4',  type: 'gate-in', x: 64, y: 35 },
+      { id: 'spd',  label: 'SPD', type: 'cv-in',   x: 79, y: 35 },
+      { id: 'out',  label: 'OUT', type: 'out',     x: 80, y: 23 },
+    ]},
+    { key: 'MEGATANG',  id: 'mega',    x: 234, y: 20,  jacks: [
+      { id: 'in',    label: 'IN',     type: 'in',    x: 12, y: 35 },
+      { id: 'lvlcv', label: 'LVL CV', type: 'cv-in', x: 35, y: 35 },
+      { id: 'mix',   label: 'MIX',    type: 'out',   x: 78, y: 35 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 342, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',   id: 'lineout', x: 436, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'CLEP',      id: 'clep',    x: 10,  y: 120, jacks: [
+      { id: 'out',  label: 'OUT',  type: 'out', x: 42, y: 35 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',      x: 122, y: 120, w: 90, jacks: [
+      { id: 'gate', label: 'GATE', type: 'gate-in', x: 20, y: 35 },
+      { id: 'env',  label: 'ENV',  type: 'out',     x: 68, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.out1', to: 'rample.t1', type: 'gate', d: 'M23,55 L23,90 L135,90 L135,55' },
+    { from: 'pam.out2', to: 'rample.t2', type: 'gate', d: 'M40,55 L40,95 L152,95 L152,55' },
+    { from: 'pam.out3', to: 'rample.t3', type: 'gate', d: 'M57,55 L57,100 L169,100 L169,55' },
+    { from: 'pam.out4', to: 'rample.t4', type: 'gate', d: 'M74,55 L74,105 L186,105 L186,55' },
+    { from: 'pam.out5', to: 'fc.gate',   type: 'gate', via: [[91, 108], [142, 108]] },
+    { from: 'clep.out', to: 'rample.spd',type: 'mod',  via: [[52, 108], [201, 108]] },
+    { from: 'fc.env',   to: 'mega.lvlcv',type: 'mod',  via: [[190, 108], [269, 108]] },
+    { from: 'rample.out',to: 'mega.in',  type: 'audio', d: 'M202,43 L220,43 L220,55 L246,55' },
+    { from: 'mega.mix', to: 'dualfx.inl',type: 'audio' },
+    { from: 'dualfx.outl',to:'lineout.inl',type:'audio', d: 'M410,55 L427,55 L427,65 L451,65' },
+  ]} />
+)
 
-  <rect x="214" y="20" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="261" y="35" class="mod-text" text-anchor="middle">SQUAWK</text>
-  <text x="261" y="47" class="jack-label" text-anchor="middle">DIRTY</text>
-  <circle cx="228" cy="60" r="5" class="jack-in"/><text x="228" y="77" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="252" cy="60" r="5" style="fill:#333;stroke:#b040ff"/><text x="252" y="77" class="jack-label" text-anchor="middle">CUTOFF</text>
-  <circle cx="300" cy="60" r="5" class="jack-out"/><text x="300" y="77" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="332" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="377" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="347" cy="55" r="5" class="jack-in"/><text x="347" y="72" class="jack-label" text-anchor="middle">IN1</text>
-  <circle cx="370" cy="55" r="5" class="jack-in"/><text x="370" y="72" class="jack-label" text-anchor="middle">IN2</text>
-  <circle cx="413" cy="55" r="5" class="jack-out"/><text x="413" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="444" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="484" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="457" cy="55" r="5" class="jack-in"/><text x="457" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="515" cy="55" r="5" class="jack-out"/><text x="515" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="538" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="573" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="573" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="551" cy="65" r="5" class="jack-in"/><text x="551" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="138" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="30" cy="158" r="5" class="jack-gate-out"/><text x="30" y="175" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="65" cy="158" r="5" class="jack-gate-out"/><text x="65" y="175" class="jack-label" text-anchor="middle">KICK</text>
-
-  <rect x="115" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="160" y="138" class="mod-text" text-anchor="middle">GENERATE 3</text>
-  <circle cx="130" cy="158" r="5" class="jack-gate-in"/><text x="130" y="175" class="jack-label" text-anchor="middle">TRIG</text>
-  <circle cx="185" cy="158" r="5" class="jack-out"/><text x="185" y="175" class="jack-label" text-anchor="middle">ENV</text>
-
-  <rect x="230" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="270" y="138" class="mod-text" text-anchor="middle">RAMPLE</text>
-  <circle cx="248" cy="158" r="5" class="jack-gate-in"/><text x="248" y="175" class="jack-label" text-anchor="middle">T1</text>
-  <circle cx="288" cy="158" r="5" class="jack-out"/><text x="288" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M30,153 L30,112 L25,112 L25,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M30,153 L30,112 L130,112 L130,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M65,153 L65,108 L248,108 L248,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M50,50 L50,43 L127,43 L127,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M75,50 L75,35 L130,35 L130,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M175,55 L209,55 L209,60 L223,60" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M185,153 L185,108 L252,108 L252,60" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M300,60 L327,60 L327,55 L342,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M288,153 L288,108 L370,108 L370,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M413,55 L439,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M515,55 L533,55 L533,65 L546,65" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
-
-export const POLYRHYTHMIC_RAMPLE = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="90" height="70" rx="2" class="module-box"/>
-  <text x="55" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="23" cy="55" r="5" class="jack-gate-out"/><text x="23" y="72" class="jack-label" text-anchor="middle">1</text>
-  <circle cx="40" cy="55" r="5" class="jack-gate-out"/><text x="40" y="72" class="jack-label" text-anchor="middle">2</text>
-  <circle cx="57" cy="55" r="5" class="jack-gate-out"/><text x="57" y="72" class="jack-label" text-anchor="middle">3</text>
-  <circle cx="74" cy="55" r="5" class="jack-gate-out"/><text x="74" y="72" class="jack-label" text-anchor="middle">4</text>
-  <circle cx="91" cy="55" r="5" class="jack-gate-out"/><text x="91" y="72" class="jack-label" text-anchor="middle">5</text>
-
-  <rect x="122" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="167" y="38" class="mod-text" text-anchor="middle">RAMPLE</text>
-  <circle cx="135" cy="55" r="5" class="jack-gate-in"/><text x="135" y="72" class="jack-label" text-anchor="middle">T1</text>
-  <circle cx="152" cy="55" r="5" class="jack-gate-in"/><text x="152" y="72" class="jack-label" text-anchor="middle">T2</text>
-  <circle cx="170" cy="55" r="5" class="jack-gate-in"/><text x="170" y="72" class="jack-label" text-anchor="middle">T3</text>
-  <circle cx="188" cy="55" r="5" class="jack-gate-in"/><text x="188" y="72" class="jack-label" text-anchor="middle">T4</text>
-  <circle cx="205" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="205" y="72" class="jack-label" text-anchor="middle">SPD</text>
-  <circle cx="202" cy="43" r="5" class="jack-out"/><text x="215" y="43" class="jack-label">OUT</text>
-
-  <rect x="232" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="277" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="247" cy="55" r="5" class="jack-in"/><text x="247" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="270" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="270" y="72" class="jack-label" text-anchor="middle">LVL CV</text>
-  <circle cx="312" cy="55" r="5" class="jack-out"/><text x="312" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="342" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="382" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="355" cy="55" r="5" class="jack-in"/><text x="355" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="413" cy="55" r="5" class="jack-out"/><text x="413" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="436" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="471" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="471" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="449" cy="65" r="5" class="jack-in"/><text x="449" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="85" height="70" rx="2" class="module-box"/>
-  <text x="52" y="138" class="mod-text" text-anchor="middle">CLEP DIAZ</text>
-  <circle cx="52" cy="158" r="5" class="jack-out"/><text x="52" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="122" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="167" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="140" cy="158" r="5" class="jack-gate-in"/><text x="140" y="175" class="jack-label" text-anchor="middle">GATE</text>
-  <circle cx="190" cy="158" r="5" class="jack-out"/><text x="190" y="175" class="jack-label" text-anchor="middle">ENV</text>
-
-  <path d="M23,50 L23,95 L135,95 L135,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M40,50 L40,100 L152,100 L152,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M57,50 L57,105 L170,105 L170,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M74,50 L74,110 L188,110 L188,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M91,50 L91,112 L140,112 L140,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M52,153 L52,112 L205,112 L205,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M190,153 L190,108 L270,108 L270,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M202,38 L227,38 L227,55 L242,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M312,55 L337,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M413,55 L431,55 L431,65 L444,65" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
-
-export const DARK_MINIMAL_BASSLINE = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">STEPPY</text>
-  <circle cx="25" cy="55" r="5" class="jack-out"/><text x="25" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="55" cy="55" r="5" class="jack-gate-out"/><text x="55" y="72" class="jack-label" text-anchor="middle">GATE</text>
-
-  <rect x="112" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="152" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="127" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="127" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="175" cy="55" r="5" class="jack-out"/><text x="175" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="214" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="254" y="38" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="227" cy="55" r="5" class="jack-in"/><text x="227" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="250" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="250" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="285" cy="55" r="5" class="jack-out"/><text x="285" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="316" y="20" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="363" y="35" class="mod-text" text-anchor="middle">SQUAWK</text>
-  <text x="363" y="47" class="jack-label" text-anchor="middle">DIRTY</text>
-  <circle cx="330" cy="60" r="5" class="jack-in"/><text x="330" y="77" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="355" cy="60" r="5" style="fill:#333;stroke:#b040ff"/><text x="355" y="77" class="jack-label" text-anchor="middle">CUTOFF</text>
-  <circle cx="402" cy="60" r="5" class="jack-out"/><text x="402" y="77" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="432" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="477" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="447" cy="55" r="5" class="jack-in"/><text x="447" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="514" cy="55" r="5" class="jack-out"/><text x="514" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="545" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="585" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="558" cy="55" r="5" class="jack-in"/><text x="558" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="616" cy="55" r="5" class="jack-out"/><text x="616" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="10" y="120" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="57" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="28" cy="158" r="5" class="jack-gate-in"/><text x="28" y="175" class="jack-label" text-anchor="middle">G1</text>
-  <circle cx="55" cy="158" r="5" class="jack-out"/><text x="55" y="175" class="jack-label" text-anchor="middle">E1</text>
-  <circle cx="80" cy="158" r="5" class="jack-out"/><text x="80" y="175" class="jack-label" text-anchor="middle">E2</text>
-  <circle cx="98" cy="158" r="5" class="jack-out"/><text x="98" y="175" class="jack-label" text-anchor="middle">E3</text>
-
-  <path d="M25,50 L25,43 L127,43 L127,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M55,50 L55,35 L28,35 L28,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M55,153 L55,108 L127,108 L127,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M80,153 L80,108 L250,108 L250,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M98,153 L98,112 L355,112 L355,65" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M175,55 L209,55 L209,44 L222,44 L222,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M285,55 L311,55 L311,60 L325,60" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M402,60 L427,60 L427,55 L442,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M514,55 L540,55" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
+// CORRECTED: Steppy is gate-only. Mimetic Digitalis now provides pitch CV.
+// Pamela's clock drives both Steppy and Mimetic D.
+export const DARK_MINIMAL_BASSLINE = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'STEPPY',   id: 'steppy',  x: 10,  y: 20,  jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-in',  x: 15, y: 35 },
+      { id: 'g1',  label: 'G1',  type: 'gate-out', x: 58, y: 35 },
+    ]},
+    { key: 'OSIRIS',   id: 'osiris',  x: 112, y: 20,  jacks: [
+      { id: 'voct', label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'QUAD_VCA', id: 'qvca',    x: 214, y: 20,  jacks: [
+      { id: 'in',   label: 'IN',    type: 'in',    x: 12, y: 35 },
+      { id: 'cv',   label: 'CV',    type: 'cv-in', x: 38, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 72, y: 35 },
+    ]},
+    { key: 'SQUAWK',   id: 'squawk',  x: 320, y: 20,  jacks: [
+      { id: 'in',     label: 'IN',     type: 'in',    x: 12, y: 40 },
+      { id: 'cutoff', label: 'CUTOFF', type: 'cv-in', x: 38, y: 40 },
+      { id: 'out',    label: 'OUT',    type: 'out',   x: 83, y: 40 },
+    ]},
+    { key: 'MEGATANG', id: 'mega',    x: 440, y: 20,  jacks: [
+      { id: 'in',  label: 'IN',  type: 'in',  x: 12, y: 35 },
+      { id: 'mix', label: 'MIX', type: 'out', x: 78, y: 35 },
+    ]},
+    { key: 'DUALFX',   id: 'dualfx',  x: 553, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'PAMELAS',  id: 'pam',     x: 10,  y: 120, jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-out', x: 35, y: 35 },
+    ]},
+    { key: 'MIMETIC',  id: 'mimetic', x: 112, y: 120, jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-in', x: 15, y: 35 },
+      { id: 'ch1', label: 'CH1', type: 'out',     x: 60, y: 35 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',     x: 230, y: 120, w: 100, jacks: [
+      { id: 'g1',  label: 'G1',  type: 'gate-in', x: 12, y: 35 },
+      { id: 'e1',  label: 'E1',  type: 'out',     x: 38, y: 35 },
+      { id: 'e2',  label: 'E2',  type: 'out',     x: 63, y: 35 },
+      { id: 'e3',  label: 'E3',  type: 'out',     x: 85, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.clk',    to: 'steppy.clk',   type: 'gate',  via: [[45, 108], [25, 108]] },
+    { from: 'pam.clk',    to: 'mimetic.clk',  type: 'gate',  d: 'M45,155 L127,155' },
+    { from: 'steppy.g1',  to: 'fc.g1',        type: 'gate',  via: [[68, 108], [242, 108]] },
+    { from: 'mimetic.ch1',to: 'osiris.voct',  type: 'audio', via: [[172, 108], [127, 108]] },
+    { from: 'fc.e1',      to: 'osiris.voct',  type: 'mod',   via: [[268, 108], [127, 108]] },
+    { from: 'fc.e2',      to: 'qvca.cv',      type: 'mod',   via: [[293, 108], [252, 108]] },
+    { from: 'fc.e3',      to: 'squawk.cutoff',type: 'mod',   via: [[315, 108], [358, 108]] },
+    { from: 'osiris.out', to: 'qvca.in',      type: 'audio' },
+    { from: 'qvca.out',   to: 'squawk.in',    type: 'audio', d: 'M286,55 L308,55 L308,60 L332,60' },
+    { from: 'squawk.out', to: 'mega.in',      type: 'audio', d: 'M403,60 L425,60 L425,55 L452,55' },
+    { from: 'mega.mix',   to: 'dualfx.inl',   type: 'audio' },
+  ]} />
+)
 
 // ─── Generative / Algorithmic ─────────────────────────────────────────────────
 
-export const BLOOM_FRACTAL_MELODY = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="50" cy="55" r="5" class="jack-gate-out"/><text x="50" y="72" class="jack-label" text-anchor="middle">CLK</text>
+export const BLOOM_FRACTAL_MELODY = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',   id: 'pam',     x: 10,  y: 20,  jacks: [
+      { id: 'clk',  label: 'CLK', type: 'gate-out', x: 40, y: 35 },
+    ]},
+    { key: 'BLOOM',     id: 'bloom',   x: 112, y: 20,  jacks: [
+      { id: 'clk',  label: 'CLK',  type: 'gate-in',  x: 15, y: 35 },
+      { id: 'cv',   label: 'CV',   type: 'out',      x: 42, y: 35 },
+      { id: 'gate', label: 'GATE', type: 'gate-out', x: 65, y: 35 },
+    ]},
+    { key: 'OSIRIS',    id: 'osiris',  x: 210, y: 20,  jacks: [
+      { id: 'voct', label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 68, y: 35 },
+    ]},
+    { key: 'LPG',       id: 'lpg',     x: 312, y: 20,  jacks: [
+      { id: 'in',   label: 'IN',   type: 'in',    x: 12, y: 40 },
+      { id: 'ctrl', label: 'CTRL', type: 'cv-in', x: 38, y: 40 },
+      { id: 'out',  label: 'OUT',  type: 'out',   x: 73, y: 40 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 420, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',   id: 'lineout', x: 515, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',      x: 10,  y: 120, w: 95, jacks: [
+      { id: 'g1',   label: 'GATE1',type: 'gate-in', x: 15, y: 35 },
+      { id: 'e1',   label: 'ENV1', type: 'out',     x: 67, y: 35 },
+    ]},
+    { key: 'QUAD_PLFO', id: 'plfo',    x: 125, y: 120, jacks: [
+      { id: 'out',  label: 'OUT',  type: 'out', x: 47, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.clk',    to: 'bloom.clk',  type: 'gate'  },
+    { from: 'bloom.cv',   to: 'osiris.voct',type: 'audio' },
+    { from: 'bloom.gate', to: 'fc.g1',      type: 'gate',  via: [[177, 108], [25, 108]] },
+    { from: 'fc.e1',      to: 'lpg.ctrl',   type: 'mod',   via: [[77, 108], [350, 108]] },
+    { from: 'plfo.out',   to: 'osiris.voct',type: 'mod',   via: [[172, 108], [225, 108]] },
+    { from: 'osiris.out', to: 'lpg.in',     type: 'audio', d: 'M278,55 L305,55 L305,60 L324,60' },
+    { from: 'lpg.out',    to: 'dualfx.inl', type: 'audio', d: 'M385,60 L412,60 L412,55 L432,55' },
+    { from: 'dualfx.outl',to: 'lineout.inl',type: 'audio', d: 'M488,55 L508,55 L508,65 L530,65' },
+  ]} />
+)
 
-  <rect x="112" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="152" y="38" class="mod-text" text-anchor="middle">BLOOM</text>
-  <circle cx="127" cy="55" r="5" class="jack-gate-in"/><text x="127" y="72" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="152" cy="55" r="5" class="jack-out"/><text x="152" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="175" cy="55" r="5" class="jack-gate-out"/><text x="175" y="72" class="jack-label" text-anchor="middle">GATE</text>
-
-  <rect x="210" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="250" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="225" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="225" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="278" cy="55" r="5" class="jack-out"/><text x="278" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="312" y="20" width="85" height="70" rx="2" class="module-box-highlight"/>
-  <text x="354" y="35" class="mod-text" text-anchor="middle">A-101-2v</text>
-  <text x="354" y="47" class="jack-label" text-anchor="middle">LPG</text>
-  <circle cx="325" cy="60" r="5" class="jack-in"/><text x="325" y="77" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="350" cy="60" r="5" style="fill:#333;stroke:#b040ff"/><text x="350" y="77" class="jack-label" text-anchor="middle">CTRL</text>
-  <circle cx="390" cy="60" r="5" class="jack-out"/><text x="390" y="77" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="420" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="460" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="433" cy="55" r="5" class="jack-in"/><text x="433" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="491" cy="55" r="5" class="jack-out"/><text x="491" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="515" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="550" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="550" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="528" cy="65" r="5" class="jack-in"/><text x="528" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="57" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="28" cy="158" r="5" class="jack-gate-in"/><text x="28" y="175" class="jack-label" text-anchor="middle">GATE1</text>
-  <circle cx="78" cy="158" r="5" class="jack-out"/><text x="78" y="175" class="jack-label" text-anchor="middle">ENV1</text>
-
-  <rect x="125" y="120" width="90" height="70" rx="2" class="module-box"/>
-  <text x="170" y="138" class="mod-text" text-anchor="middle">QUAD PLFO</text>
-  <circle cx="170" cy="158" r="5" class="jack-out"/><text x="170" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M50,50 L50,43 L112,43 L112,43 L122,43 L122,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M152,50 L152,43 L225,43 L225,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M175,50 L175,35 L28,35 L28,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M78,153 L78,108 L350,108 L350,65" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M170,153 L170,112 L225,112 L225,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M278,55 L307,55 L307,60 L320,60" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M390,60 L415,60 L415,55 L428,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M491,55 L510,55 L510,65 L523,65" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
-
-export const THREE_SEQUENCER_POLYRHYTHM = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="50" cy="55" r="5" class="jack-gate-out"/><text x="50" y="72" class="jack-label" text-anchor="middle">CLK</text>
-
-  <rect x="112" y="20" width="85" height="70" rx="2" class="module-box-highlight"/>
-  <text x="154" y="38" class="mod-text" text-anchor="middle">BUFF MULT</text>
-  <circle cx="127" cy="55" r="5" class="jack-gate-in"/><text x="127" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="152" cy="55" r="5" class="jack-gate-out"/><text x="152" y="72" class="jack-label" text-anchor="middle">A</text>
-  <circle cx="170" cy="55" r="5" class="jack-gate-out"/><text x="170" y="72" class="jack-label" text-anchor="middle">B</text>
-  <circle cx="188" cy="55" r="5" class="jack-gate-out"/><text x="188" y="72" class="jack-label" text-anchor="middle">C</text>
-
-  <rect x="220" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="260" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="238" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="238" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="288" cy="55" r="5" class="jack-out"/><text x="288" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="322" y="20" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="369" y="35" class="mod-text" text-anchor="middle">SQUAWK</text>
-  <text x="369" y="47" class="jack-label" text-anchor="middle">DIRTY</text>
-  <circle cx="336" cy="60" r="5" class="jack-in"/><text x="336" y="77" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="360" cy="60" r="5" style="fill:#333;stroke:#b040ff"/><text x="360" y="77" class="jack-label" text-anchor="middle">CUTOFF</text>
-  <circle cx="408" cy="60" r="5" class="jack-out"/><text x="408" y="77" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="440" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="485" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="455" cy="55" r="5" class="jack-in"/><text x="455" y="72" class="jack-label" text-anchor="middle">IN1</text>
-  <circle cx="478" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="478" y="72" class="jack-label" text-anchor="middle">LVL CV</text>
-  <circle cx="522" cy="55" r="5" class="jack-out"/><text x="522" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="552" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="592" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="565" cy="55" r="5" class="jack-in"/><text x="565" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="623" cy="55" r="5" class="jack-out"/><text x="623" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="10" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="50" y="138" class="mod-text" text-anchor="middle">BLOOM</text>
-  <circle cx="30" cy="158" r="5" class="jack-gate-in"/><text x="30" y="175" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="55" cy="158" r="5" class="jack-out"/><text x="55" y="175" class="jack-label" text-anchor="middle">CV</text>
-
-  <rect x="112" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="152" y="138" class="mod-text" text-anchor="middle">STEPPY</text>
-  <circle cx="132" cy="158" r="5" class="jack-gate-in"/><text x="132" y="175" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="175" cy="158" r="5" class="jack-gate-out"/><text x="175" y="175" class="jack-label" text-anchor="middle">GATE</text>
-
-  <rect x="215" y="120" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="262" y="138" class="mod-text" text-anchor="middle">MIMETIC D.</text>
-  <circle cx="232" cy="158" r="5" class="jack-gate-in"/><text x="232" y="175" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="270" cy="158" r="5" class="jack-out"/><text x="270" y="175" class="jack-label" text-anchor="middle">CH1</text>
-
-  <path d="M50,50 L50,43 L122,43 L122,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M152,50 L152,35 L30,35 L30,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M170,50 L170,30 L132,30 L132,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M188,50 L188,25 L232,25 L232,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M55,153 L55,108 L238,108 L238,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M175,153 L175,112 L455,112 L455,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M270,153 L270,108 L360,108 L360,65" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M270,153 L270,115 L478,115 L478,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M288,55 L317,55 L317,60 L331,60" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M408,60 L435,60 L435,55 L450,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M522,55 L547,55" class="wire-audio" stroke-width="2" fill="none"/>
-  ${LEGEND}
-</svg>`
+// CORRECTED: Steppy drives Rample gates (not Osiris V/OCT — Steppy has no CV output).
+// Bloom handles pitch for Osiris. Mimetic D. handles filter and level modulation.
+export const THREE_SEQUENCER_POLYRHYTHM = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',  id: 'pam',     x: 10,  y: 20,  jacks: [
+      { id: 'clk',  label: 'CLK', type: 'gate-out', x: 40, y: 35 },
+    ]},
+    { key: 'BUFFMULT', id: 'buff',    x: 100, y: 20,  jacks: [
+      { id: 'in',  label: 'IN', type: 'gate-in',  x: 12, y: 35 },
+      { id: 'a',   label: 'A',  type: 'gate-out', x: 32, y: 35 },
+      { id: 'b',   label: 'B',  type: 'gate-out', x: 52, y: 35 },
+      { id: 'c',   label: 'C',  type: 'gate-out', x: 73, y: 35 },
+    ]},
+    { key: 'OSIRIS',   id: 'osiris',  x: 195, y: 20,  jacks: [
+      { id: 'voct', label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'SQUAWK',   id: 'squawk',  x: 285, y: 20,  jacks: [
+      { id: 'in',     label: 'IN',     type: 'in',    x: 12, y: 40 },
+      { id: 'cutoff', label: 'CUTOFF', type: 'cv-in', x: 38, y: 40 },
+      { id: 'out',    label: 'OUT',    type: 'out',   x: 83, y: 40 },
+    ]},
+    { key: 'MEGATANG', id: 'mega',    x: 390, y: 20,  jacks: [
+      { id: 'in1',   label: 'IN1',    type: 'in',    x: 12, y: 35 },
+      { id: 'lvlcv', label: 'LVL CV', type: 'cv-in', x: 40, y: 35 },
+      { id: 'mix',   label: 'MIX',    type: 'out',   x: 78, y: 35 },
+    ]},
+    { key: 'DUALFX',   id: 'dualfx',  x: 490, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'BLOOM',    id: 'bloom',   x: 10,  y: 120, jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-in',  x: 15, y: 35 },
+      { id: 'cv',  label: 'CV',  type: 'out',      x: 45, y: 35 },
+    ]},
+    { key: 'STEPPY',   id: 'steppy',  x: 100, y: 120, jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-in',  x: 15, y: 35 },
+      { id: 'g1',  label: 'G1',  type: 'gate-out', x: 55, y: 35 },
+    ]},
+    { key: 'MIMETIC',  id: 'mimetic', x: 190, y: 120, jacks: [
+      { id: 'clk', label: 'CLK', type: 'gate-in', x: 15, y: 35 },
+      { id: 'ch1', label: 'CH1', type: 'out',     x: 42, y: 35 },
+      { id: 'ch2', label: 'CH2', type: 'out',     x: 67, y: 35 },
+    ]},
+    { key: 'RAMPLE',   id: 'rample',  x: 295, y: 120, jacks: [
+      { id: 't1',  label: 'T1',  type: 'gate-in', x: 12, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.clk',     to: 'buff.in',       type: 'gate'  },
+    { from: 'buff.a',      to: 'bloom.clk',     type: 'gate',  via: [[132, 108], [25, 108]] },
+    { from: 'buff.b',      to: 'steppy.clk',    type: 'gate',  via: [[152, 108], [115, 108]] },
+    { from: 'buff.c',      to: 'mimetic.clk',   type: 'gate',  via: [[173, 108], [205, 108]] },
+    { from: 'bloom.cv',    to: 'osiris.voct',   type: 'audio', via: [[55, 108], [210, 108]] },
+    { from: 'steppy.g1',   to: 'rample.t1',     type: 'gate',  via: [[155, 108], [307, 108]] },
+    { from: 'mimetic.ch1', to: 'squawk.cutoff', type: 'mod',   via: [[232, 108], [323, 108]] },
+    { from: 'mimetic.ch2', to: 'mega.lvlcv',    type: 'mod',   via: [[257, 108], [430, 108]] },
+    { from: 'osiris.out',  to: 'squawk.in',     type: 'audio', d: 'M260,55 L278,55 L278,60 L297,60' },
+    { from: 'squawk.out',  to: 'mega.in1',      type: 'audio', d: 'M368,60 L385,60 L385,55 L402,55' },
+    { from: 'mega.mix',    to: 'dualfx.inl',    type: 'audio' },
+  ]} />
+)
 
 // ─── Melodic / Harmonic ───────────────────────────────────────────────────────
 
-export const DUAL_OSCILLATOR_LEAD = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="57" y="35" class="mod-text" text-anchor="middle">UNIVER</text>
-  <text x="57" y="47" class="mod-text" text-anchor="middle">INTER</text>
-  <circle cx="25" cy="60" r="5" class="jack-out"/><text x="25" y="77" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="57" cy="60" r="5" class="jack-gate-out"/><text x="57" y="77" class="jack-label" text-anchor="middle">GATE</text>
-  <circle cx="92" cy="60" r="5" class="jack-out"/><text x="92" y="77" class="jack-label" text-anchor="middle">MOD</text>
+export const DUAL_OSCILLATOR_LEAD = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'UNIVINTER', id: 'uni',     x: 10,  y: 20,  jacks: [
+      { id: 'cv',   label: 'CV',   type: 'out',      x: 12, y: 40 },
+      { id: 'gate', label: 'GATE', type: 'gate-out', x: 47, y: 40 },
+      { id: 'mod',  label: 'MOD',  type: 'out',      x: 82, y: 40 },
+    ]},
+    { key: 'OSIRIS',    id: 'osiris',  x: 128, y: 20,  jacks: [
+      { id: 'voct',  label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'morph', label: 'MORPH', type: 'cv-in', x: 37, y: 35 },
+      { id: 'out',   label: 'OUT',   type: 'out',   x: 72, y: 35 },
+    ]},
+    { key: 'QUAD_VCA',  id: 'qvca',    x: 232, y: 20,  jacks: [
+      { id: 'in',   label: 'IN',    type: 'in',    x: 12, y: 35 },
+      { id: 'cv',   label: 'CV',    type: 'cv-in', x: 36, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 72, y: 35 },
+    ]},
+    { key: 'SQUAWK',    id: 'squawk',  x: 335, y: 20,  jacks: [
+      { id: 'in',     label: 'IN',     type: 'in',    x: 12, y: 40 },
+      { id: 'cutoff', label: 'CUTOFF', type: 'cv-in', x: 38, y: 40 },
+      { id: 'out',    label: 'OUT',    type: 'out',   x: 83, y: 40 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 453, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',   id: 'lineout', x: 547, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',      x: 10,  y: 120, w: 95, jacks: [
+      { id: 'g1',   label: 'GATE1', type: 'gate-in', x: 15, y: 35 },
+      { id: 'e1',   label: 'ENV1',  type: 'out',     x: 48, y: 35 },
+      { id: 'e2',   label: 'ENV2',  type: 'out',     x: 80, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'uni.cv',     to: 'osiris.voct',   type: 'audio' },
+    { from: 'uni.gate',   to: 'fc.g1',         type: 'gate',  via: [[57, 108], [25, 108]] },
+    { from: 'uni.mod',    to: 'osiris.morph',  type: 'mod'   },
+    { from: 'fc.e1',      to: 'qvca.cv',       type: 'mod',   via: [[58, 108], [268, 108]] },
+    { from: 'fc.e2',      to: 'squawk.cutoff', type: 'mod',   via: [[90, 108], [373, 108]] },
+    { from: 'osiris.out', to: 'qvca.in',       type: 'audio' },
+    { from: 'qvca.out',   to: 'squawk.in',     type: 'audio', d: 'M304,55 L325,55 L325,60 L347,60' },
+    { from: 'squawk.out', to: 'dualfx.inl',    type: 'audio', d: 'M418,60 L443,60 L443,55 L465,55' },
+    { from: 'dualfx.outl',to: 'lineout.inl',   type: 'audio', d: 'M521,55 L539,55 L539,65 L562,65' },
+  ]} />
+)
 
-  <rect x="128" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="168" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="143" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="143" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="168" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="168" y="72" class="jack-label" text-anchor="middle">MORPH</text>
-  <circle cx="200" cy="55" r="5" class="jack-out"/><text x="200" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="232" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="272" y="38" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="245" cy="55" r="5" class="jack-in"/><text x="245" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="268" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="268" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="302" cy="55" r="5" class="jack-out"/><text x="302" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="335" y="20" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="382" y="35" class="mod-text" text-anchor="middle">SQUAWK</text>
-  <text x="382" y="47" class="jack-label" text-anchor="middle">DIRTY</text>
-  <circle cx="349" cy="60" r="5" class="jack-in"/><text x="349" y="77" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="374" cy="60" r="5" style="fill:#333;stroke:#b040ff"/><text x="374" y="77" class="jack-label" text-anchor="middle">CUTOFF</text>
-  <circle cx="421" cy="60" r="5" class="jack-out"/><text x="421" y="77" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="453" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="493" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="466" cy="55" r="5" class="jack-in"/><text x="466" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="524" cy="55" r="5" class="jack-out"/><text x="524" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="547" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="582" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="582" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="560" cy="65" r="5" class="jack-in"/><text x="560" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="57" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="28" cy="158" r="5" class="jack-gate-in"/><text x="28" y="175" class="jack-label" text-anchor="middle">GATE1</text>
-  <circle cx="58" cy="158" r="5" class="jack-out"/><text x="58" y="175" class="jack-label" text-anchor="middle">ENV1</text>
-  <circle cx="85" cy="158" r="5" class="jack-out"/><text x="85" y="175" class="jack-label" text-anchor="middle">ENV2</text>
-
-  <path d="M25,55 L25,43 L143,43 L143,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M57,55 L57,35 L28,35 L28,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M92,55 L92,30 L168,30 L168,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M58,153 L58,108 L268,108 L268,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M85,153 L85,115 L374,115 L374,65" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M200,55 L227,55 L227,44 L240,44 L240,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M302,55 L330,55 L330,60 L344,60" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M421,60 L448,60 L448,55 L461,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M524,55 L542,55 L542,65 L555,65" class="wire-audio" stroke-width="2" fill="none"/>
-  <text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = CV modulation · Solid = audio · Yellow = gate/trigger</text>
-</svg>`
-
-export const SAMPLE_SYNTH_UNISON = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">BLOOM</text>
-  <circle cx="25" cy="55" r="5" class="jack-gate-in"/><text x="25" y="72" class="jack-label" text-anchor="middle">CLK</text>
-  <circle cx="50" cy="55" r="5" class="jack-out"/><text x="50" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="75" cy="55" r="5" class="jack-gate-out"/><text x="75" y="72" class="jack-label" text-anchor="middle">GATE</text>
-
-  <rect x="112" y="20" width="85" height="70" rx="2" class="module-box-highlight"/>
-  <text x="154" y="38" class="mod-text" text-anchor="middle">BUFF MULT</text>
-  <circle cx="127" cy="55" r="5" class="jack-in"/><text x="127" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="158" cy="55" r="5" class="jack-out"/><text x="158" y="72" class="jack-label" text-anchor="middle">A</text>
-  <circle cx="188" cy="55" r="5" class="jack-out"/><text x="188" y="72" class="jack-label" text-anchor="middle">B</text>
-
-  <rect x="220" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="260" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="235" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="235" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="293" cy="55" r="5" class="jack-out"/><text x="293" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="325" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="370" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="340" cy="55" r="5" class="jack-in"/><text x="340" y="72" class="jack-label" text-anchor="middle">IN1</text>
-  <circle cx="365" cy="55" r="5" class="jack-in"/><text x="365" y="72" class="jack-label" text-anchor="middle">IN2</text>
-  <circle cx="408" cy="55" r="5" class="jack-out"/><text x="408" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="440" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="480" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="453" cy="55" r="5" class="jack-in"/><text x="453" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="511" cy="55" r="5" class="jack-out"/><text x="511" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="535" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="570" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="570" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="548" cy="65" r="5" class="jack-in"/><text x="548" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="50" y="138" class="mod-text" text-anchor="middle">RAMPLE</text>
-  <circle cx="30" cy="158" r="5" style="fill:#333;stroke:#b040ff"/><text x="30" y="175" class="jack-label" text-anchor="middle">PITCH</text>
-  <circle cx="65" cy="158" r="5" class="jack-out"/><text x="65" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="115" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="160" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="133" cy="158" r="5" class="jack-gate-in"/><text x="133" y="175" class="jack-label" text-anchor="middle">GATE1</text>
-  <circle cx="183" cy="158" r="5" class="jack-out"/><text x="183" y="175" class="jack-label" text-anchor="middle">ENV1</text>
-
-  <rect x="230" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="270" y="138" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="250" cy="158" r="5" class="jack-in"/><text x="250" y="175" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="275" cy="158" r="5" style="fill:#333;stroke:#b040ff"/><text x="275" y="175" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="300" cy="158" r="5" class="jack-out"/><text x="300" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M50,50 L50,43 L122,43 L122,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M75,50 L75,35 L133,35 L133,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M158,50 L158,43 L235,43 L235,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M188,50 L188,35 L30,35 L30,153" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M183,153 L183,108 L275,108 L275,153" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M293,55 L320,55 L320,44 L335,44 L335,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M65,153 L65,108 L250,108 L250,153" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M300,153 L300,108 L365,108 L365,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M408,55 L435,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M511,55 L530,55 L530,65 L543,65" class="wire-audio" stroke-width="2" fill="none"/>
-  <text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = CV modulation · Solid = audio · Yellow = gate/trigger</text>
-</svg>`
+export const SAMPLE_SYNTH_UNISON = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'BLOOM',     id: 'bloom',   x: 10,  y: 20,  jacks: [
+      { id: 'clk',  label: 'CLK',  type: 'gate-in',  x: 15, y: 35 },
+      { id: 'cv',   label: 'CV',   type: 'out',      x: 45, y: 35 },
+      { id: 'gate', label: 'GATE', type: 'gate-out', x: 65, y: 35 },
+    ]},
+    { key: 'BUFFMULT',  id: 'buff',    x: 112, y: 20,  jacks: [
+      { id: 'in',  label: 'IN', type: 'in',  x: 12, y: 35 },
+      { id: 'a',   label: 'A',  type: 'out', x: 35, y: 35 },
+      { id: 'b',   label: 'B',  type: 'out', x: 60, y: 35 },
+    ]},
+    { key: 'OSIRIS',    id: 'osiris',  x: 220, y: 20,  jacks: [
+      { id: 'voct', label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'MEGATANG',  id: 'mega',    x: 325, y: 20,  jacks: [
+      { id: 'in1',  label: 'IN1',  type: 'in',  x: 12, y: 35 },
+      { id: 'in2',  label: 'IN2',  type: 'in',  x: 35, y: 35 },
+      { id: 'mix',  label: 'MIX',  type: 'out', x: 78, y: 35 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 440, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',   id: 'lineout', x: 535, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'RAMPLE',    id: 'rample',  x: 10,  y: 120, jacks: [
+      { id: 'pitch',label: 'PITCH',type: 'cv-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',  type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',      x: 112, y: 120, w: 90, jacks: [
+      { id: 'g1',   label: 'GATE1',type: 'gate-in', x: 15, y: 35 },
+      { id: 'e1',   label: 'ENV1', type: 'out',     x: 75, y: 35 },
+    ]},
+    { key: 'QUAD_VCA',  id: 'qvca',    x: 230, y: 120, jacks: [
+      { id: 'in',   label: 'IN',   type: 'in',    x: 12, y: 35 },
+      { id: 'cv',   label: 'CV',   type: 'cv-in', x: 37, y: 35 },
+      { id: 'out',  label: 'OUT',  type: 'out',   x: 72, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'bloom.cv',   to: 'buff.in',     type: 'audio' },
+    { from: 'bloom.gate', to: 'fc.g1',       type: 'gate',  via: [[75, 108], [127, 108]] },
+    { from: 'buff.a',     to: 'osiris.voct', type: 'audio' },
+    { from: 'buff.b',     to: 'rample.pitch',type: 'audio', via: [[172, 108], [25, 108]] },
+    { from: 'fc.e1',      to: 'qvca.cv',     type: 'mod',   d: 'M187,155 L267,155' },
+    { from: 'osiris.out', to: 'mega.in1',    type: 'audio' },
+    { from: 'rample.out', to: 'qvca.in',     type: 'audio', d: 'M75,155 L242,155' },
+    { from: 'qvca.out',   to: 'mega.in2',    type: 'audio', via: [[302, 108], [360, 108]] },
+    { from: 'mega.mix',   to: 'dualfx.inl',  type: 'audio' },
+    { from: 'dualfx.outl',to: 'lineout.inl', type: 'audio', d: 'M508,55 L525,55 L525,65 L550,65' },
+  ]} />
+)
 
 // ─── Percussive / Rhythmic ────────────────────────────────────────────────────
 
-export const LPG_DRUM_MACHINE = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="28" cy="55" r="5" class="jack-gate-out"/><text x="28" y="72" class="jack-label" text-anchor="middle">KICK</text>
-  <circle cx="60" cy="55" r="5" class="jack-gate-out"/><text x="60" y="72" class="jack-label" text-anchor="middle">PERC</text>
+export const LPG_DRUM_MACHINE = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',   id: 'pam',     x: 10,  y: 20,  jacks: [
+      { id: 'kick', label: 'KICK', type: 'gate-out', x: 20, y: 35 },
+      { id: 'perc', label: 'PERC', type: 'gate-out', x: 55, y: 35 },
+    ]},
+    { key: 'OSIRIS',    id: 'osiris',  x: 112, y: 20,  jacks: [
+      { id: 'voct', label: 'V/OCT', type: 'cv-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',   type: 'out',   x: 65, y: 35 },
+    ]},
+    { key: 'LPG',       id: 'lpg',     x: 215, y: 20,  jacks: [
+      { id: 'in',   label: 'IN',   type: 'in',    x: 12, y: 40 },
+      { id: 'ctrl', label: 'CTRL', type: 'cv-in', x: 38, y: 40 },
+      { id: 'out',  label: 'OUT',  type: 'out',   x: 73, y: 40 },
+    ]},
+    { key: 'QUAD_VCA',  id: 'qvca',    x: 325, y: 20,  jacks: [
+      { id: 'in1',  label: 'IN1',  type: 'in',  x: 12, y: 35 },
+      { id: 'in2',  label: 'IN2',  type: 'in',  x: 35, y: 35 },
+      { id: 'out',  label: 'OUT',  type: 'out', x: 72, y: 35 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 428, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',   id: 'lineout', x: 522, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',      x: 10,  y: 120, w: 95, jacks: [
+      { id: 'g1',   label: 'GATE1',type: 'gate-in', x: 15, y: 35 },
+      { id: 'e1',   label: 'ENV1', type: 'out',     x: 75, y: 35 },
+    ]},
+    { key: 'RAMPLE',    id: 'rample',  x: 130, y: 120, jacks: [
+      { id: 't1',   label: 'T1',   type: 'gate-in', x: 15, y: 35 },
+      { id: 'out',  label: 'OUT',  type: 'out',     x: 68, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.kick',  to: 'fc.g1',     type: 'gate',  via: [[30, 108], [25, 108]] },
+    { from: 'pam.kick',  to: 'lpg.ctrl',  type: 'gate',  d: 'M30,55 L30,40 L253,40 L253,60' },
+    { from: 'pam.perc',  to: 'rample.t1', type: 'gate',  via: [[65, 108], [145, 108]] },
+    { from: 'fc.e1',     to: 'osiris.voct',type: 'mod',  via: [[85, 108], [127, 108]] },
+    { from: 'osiris.out',to: 'lpg.in',    type: 'audio', d: 'M177,55 L208,55 L208,60 L227,60' },
+    { from: 'lpg.out',   to: 'qvca.in1',  type: 'audio', d: 'M288,60 L313,60 L313,55 L337,55' },
+    { from: 'rample.out',to: 'qvca.in2',  type: 'audio', via: [[198, 108], [360, 108]] },
+    { from: 'qvca.out',  to: 'dualfx.inl',type: 'audio' },
+    { from: 'dualfx.outl',to:'lineout.inl',type:'audio', d: 'M496,55 L513,55 L513,65 L537,65' },
+  ]} />
+)
 
-  <rect x="112" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="152" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="127" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="127" y="72" class="jack-label" text-anchor="middle">V/OCT</text>
-  <circle cx="175" cy="55" r="5" class="jack-out"/><text x="175" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="215" y="20" width="85" height="70" rx="2" class="module-box-highlight"/>
-  <text x="257" y="35" class="mod-text" text-anchor="middle">A-101-2v</text>
-  <text x="257" y="47" class="jack-label" text-anchor="middle">LPG</text>
-  <circle cx="228" cy="60" r="5" class="jack-in"/><text x="228" y="77" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="252" cy="60" r="5" style="fill:#333;stroke:#b040ff"/><text x="252" y="77" class="jack-label" text-anchor="middle">CTRL</text>
-  <circle cx="292" cy="60" r="5" class="jack-out"/><text x="292" y="77" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="325" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="365" y="38" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="338" cy="55" r="5" class="jack-in"/><text x="338" y="72" class="jack-label" text-anchor="middle">IN1</text>
-  <circle cx="362" cy="55" r="5" class="jack-in"/><text x="362" y="72" class="jack-label" text-anchor="middle">IN2</text>
-  <circle cx="396" cy="55" r="5" class="jack-out"/><text x="396" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="428" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="468" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="441" cy="55" r="5" class="jack-in"/><text x="441" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="499" cy="55" r="5" class="jack-out"/><text x="499" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="522" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="557" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="557" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="535" cy="65" r="5" class="jack-in"/><text x="535" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="57" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="28" cy="158" r="5" class="jack-gate-in"/><text x="28" y="175" class="jack-label" text-anchor="middle">GATE1</text>
-  <circle cx="78" cy="158" r="5" class="jack-out"/><text x="78" y="175" class="jack-label" text-anchor="middle">ENV1</text>
-
-  <rect x="130" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="170" y="138" class="mod-text" text-anchor="middle">RAMPLE</text>
-  <circle cx="148" cy="158" r="5" class="jack-gate-in"/><text x="148" y="175" class="jack-label" text-anchor="middle">T1</text>
-  <circle cx="185" cy="158" r="5" class="jack-out"/><text x="185" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M28,50 L28,95 L28,95 L28,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M28,50 L28,40 L252,40 L252,55" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M60,50 L60,35 L148,35 L148,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M78,153 L78,108 L127,108 L127,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M175,55 L210,55 L210,60 L223,60" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M292,60 L320,60 L320,55 L333,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M185,153 L185,108 L362,108 L362,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M396,55 L423,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M499,55 L517,55 L517,65 L530,65" class="wire-audio" stroke-width="2" fill="none"/>
-  <text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = CV modulation · Solid = audio · Yellow = gate/trigger</text>
-</svg>`
-
-export const FORECASTLE_PERCUSSION = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">PAMELA'S</text>
-  <circle cx="23" cy="55" r="5" class="jack-gate-out"/><text x="23" y="72" class="jack-label" text-anchor="middle">K</text>
-  <circle cx="40" cy="55" r="5" class="jack-gate-out"/><text x="40" y="72" class="jack-label" text-anchor="middle">S</text>
-  <circle cx="57" cy="55" r="5" class="jack-gate-out"/><text x="57" y="72" class="jack-label" text-anchor="middle">HH</text>
-  <circle cx="75" cy="55" r="5" class="jack-gate-out"/><text x="75" y="72" class="jack-label" text-anchor="middle">ACC</text>
-
-  <rect x="112" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="152" y="38" class="mod-text" text-anchor="middle">RAMPLE</text>
-  <circle cx="125" cy="55" r="5" class="jack-gate-in"/><text x="125" y="72" class="jack-label" text-anchor="middle">T1</text>
-  <circle cx="142" cy="55" r="5" class="jack-gate-in"/><text x="142" y="72" class="jack-label" text-anchor="middle">T2</text>
-  <circle cx="160" cy="55" r="5" class="jack-gate-in"/><text x="160" y="72" class="jack-label" text-anchor="middle">T3</text>
-  <circle cx="177" cy="55" r="5" class="jack-gate-in"/><text x="177" y="72" class="jack-label" text-anchor="middle">T4</text>
-  <circle cx="185" cy="43" r="5" class="jack-out"/><text x="196" y="43" class="jack-label">OUT</text>
-
-  <rect x="225" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="270" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="240" cy="55" r="5" class="jack-in"/><text x="240" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="263" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="263" y="72" class="jack-label" text-anchor="middle">LVL CV</text>
-  <circle cx="305" cy="55" r="5" class="jack-out"/><text x="305" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="335" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="375" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="348" cy="55" r="5" class="jack-in"/><text x="348" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="406" cy="55" r="5" class="jack-out"/><text x="406" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="430" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="465" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="465" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="443" cy="65" r="5" class="jack-in"/><text x="443" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="110" height="70" rx="2" class="module-box-highlight"/>
-  <text x="65" y="138" class="mod-text" text-anchor="middle">FORECASTLE</text>
-  <circle cx="25" cy="158" r="5" class="jack-gate-in"/><text x="25" y="175" class="jack-label" text-anchor="middle">G1</text>
-  <circle cx="45" cy="158" r="5" class="jack-gate-in"/><text x="45" y="175" class="jack-label" text-anchor="middle">G2</text>
-  <circle cx="65" cy="158" r="5" class="jack-gate-in"/><text x="65" y="175" class="jack-label" text-anchor="middle">G3</text>
-  <circle cx="85" cy="158" r="5" class="jack-gate-in"/><text x="85" y="175" class="jack-label" text-anchor="middle">G4</text>
-  <circle cx="112" cy="158" r="5" class="jack-out"/><text x="112" y="175" class="jack-label" text-anchor="middle">E4</text>
-
-  <rect x="145" y="120" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="192" y="135" class="mod-text" text-anchor="middle">SQUAWK</text>
-  <text x="192" y="147" class="jack-label" text-anchor="middle">DIRTY</text>
-  <circle cx="158" cy="163" r="5" class="jack-in"/><text x="158" y="180" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="232" cy="163" r="5" class="jack-out"/><text x="232" y="180" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="265" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="305" y="138" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="278" cy="158" r="5" class="jack-in"/><text x="278" y="175" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="320" cy="158" r="5" class="jack-out"/><text x="320" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M23,50 L23,95 L125,95 L125,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M40,50 L40,100 L142,100 L142,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M57,50 L57,105 L160,105 L160,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M75,50 L75,110 L177,110 L177,50" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M23,50 L23,95 L10,95 L10,153 L20,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M40,100 L10,100 L10,153 L10,148 L45,148 L45,153" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M57,105 L8,105 L8,158 L60,158" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M75,110 L6,110 L6,163 L80,163 L80,158" class="wire-gate" stroke-width="1.5" fill="none"/>
-  <path d="M112,153 L112,108 L263,108 L263,55" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M185,38 L220,38 L220,55 L235,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M232,163 L260,163 L260,108 L320,108 L320,153" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M320,153 L320,108 L240,108 L240,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M305,55 L330,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M406,55 L425,55 L425,65 L438,65" class="wire-audio" stroke-width="2" fill="none"/>
-  <text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = CV modulation · Solid = audio · Yellow = gate/trigger</text>
-</svg>`
+export const FORECASTLE_PERCUSSION = (
+  <PatchDiagram note={NOTE} modules={place([
+    { key: 'PAMELAS',   id: 'pam',     x: 10,  y: 20,  jacks: [
+      { id: 'k',   label: 'K',   type: 'gate-out', x: 13, y: 35 },
+      { id: 's',   label: 'S',   type: 'gate-out', x: 30, y: 35 },
+      { id: 'hh',  label: 'HH',  type: 'gate-out', x: 47, y: 35 },
+      { id: 'acc', label: 'ACC', type: 'gate-out', x: 65, y: 35 },
+    ]},
+    { key: 'RAMPLE',    id: 'rample',  x: 112, y: 20,  w: 85, jacks: [
+      { id: 't1',  label: 'T1',  type: 'gate-in', x: 12, y: 35 },
+      { id: 't2',  label: 'T2',  type: 'gate-in', x: 28, y: 35 },
+      { id: 't3',  label: 'T3',  type: 'gate-in', x: 43, y: 35 },
+      { id: 't4',  label: 'T4',  type: 'gate-in', x: 58, y: 35 },
+      { id: 'out', label: 'OUT', type: 'out',     x: 78, y: 23 },
+    ]},
+    { key: 'MEGATANG',  id: 'mega',    x: 220, y: 20,  jacks: [
+      { id: 'in',    label: 'IN',     type: 'in',    x: 15, y: 35 },
+      { id: 'lvlcv', label: 'LVL CV', type: 'cv-in', x: 40, y: 35 },
+      { id: 'mix',   label: 'MIX',    type: 'out',   x: 78, y: 35 },
+    ]},
+    { key: 'DUALFX',    id: 'dualfx',  x: 330, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+      { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+    ]},
+    { key: 'LINEOUT',   id: 'lineout', x: 425, y: 20,  jacks: [
+      { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+    ]},
+    { key: 'FORECASTLE',id: 'fc',      x: 10,  y: 120, w: 110, jacks: [
+      { id: 'g1',  label: 'G1',  type: 'gate-in', x: 15, y: 35 },
+      { id: 'g2',  label: 'G2',  type: 'gate-in', x: 35, y: 35 },
+      { id: 'g3',  label: 'G3',  type: 'gate-in', x: 55, y: 35 },
+      { id: 'g4',  label: 'G4',  type: 'gate-in', x: 75, y: 35 },
+      { id: 'e4',  label: 'E4',  type: 'out',     x: 98, y: 35 },
+    ]},
+    { key: 'SQUAWK',    id: 'squawk',  x: 145, y: 120, jacks: [
+      { id: 'in',  label: 'IN',  type: 'in',  x: 12, y: 40 },
+      { id: 'out', label: 'OUT', type: 'out', x: 83, y: 40 },
+    ]},
+    { key: 'QUAD_VCA',  id: 'qvca',    x: 265, y: 120, jacks: [
+      { id: 'in',  label: 'IN',  type: 'in',  x: 12, y: 35 },
+      { id: 'out', label: 'OUT', type: 'out', x: 72, y: 35 },
+    ]},
+  ])} wires={[
+    { from: 'pam.k',   to: 'rample.t1', type: 'gate', d: 'M23,55 L23,90 L124,90 L124,55' },
+    { from: 'pam.s',   to: 'rample.t2', type: 'gate', d: 'M40,55 L40,95 L140,95 L140,55' },
+    { from: 'pam.hh',  to: 'rample.t3', type: 'gate', d: 'M57,55 L57,100 L155,100 L155,55' },
+    { from: 'pam.acc', to: 'rample.t4', type: 'gate', d: 'M75,55 L75,105 L170,105 L170,55' },
+    { from: 'pam.k',   to: 'fc.g1',     type: 'gate', via: [[23, 108], [25, 108]] },
+    { from: 'pam.s',   to: 'fc.g2',     type: 'gate', via: [[40, 108], [45, 108]] },
+    { from: 'pam.hh',  to: 'fc.g3',     type: 'gate', via: [[57, 108], [65, 108]] },
+    { from: 'pam.acc', to: 'fc.g4',     type: 'gate', via: [[75, 108], [85, 108]] },
+    { from: 'fc.e4',   to: 'mega.lvlcv',type: 'mod',  via: [[108, 108], [260, 108]] },
+    { from: 'rample.out',to:'mega.in',  type: 'audio', d: 'M190,43 L213,43 L213,55 L235,55' },
+    { from: 'squawk.out',to:'qvca.in',  type: 'audio', d: 'M228,163 L250,163 L250,155 L277,155' },
+    { from: 'qvca.out', to: 'mega.in',  type: 'audio', via: [[337, 108], [235, 108]] },
+    { from: 'mega.mix', to: 'dualfx.inl',type: 'audio' },
+    { from: 'dualfx.outl',to:'lineout.inl',type:'audio', d: 'M398,55 L416,55 L416,65 L440,65' },
+  ]} />
+)
 
 // ─── Experimental ─────────────────────────────────────────────────────────────
 
-export const SELF_PATCHING_FEEDBACK = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="50" y="38" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="25" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="25" y="72" class="jack-label" text-anchor="middle">FM</text>
-  <circle cx="65" cy="55" r="5" class="jack-out"/><text x="65" y="72" class="jack-label" text-anchor="middle">OUT</text>
+export const SELF_PATCHING_FEEDBACK = (
+  <PatchDiagram
+    note="Dashed = CV modulation · Solid = audio · Feedback loop arcs above Osiris"
+    modules={place([
+      { key: 'OSIRIS',    id: 'osiris',  x: 10,  y: 20,  jacks: [
+        { id: 'fm',   label: 'FM',   type: 'cv-in', x: 15, y: 35 },
+        { id: 'out',  label: 'OUT',  type: 'out',   x: 65, y: 35 },
+      ]},
+      { key: 'QUADRATT',  id: 'qratt',   x: 120, y: 20,  jacks: [
+        { id: 'in',   label: 'IN',   type: 'in',  x: 12, y: 35 },
+        { id: 'out',  label: 'OUT',  type: 'out', x: 73, y: 35 },
+      ]},
+      { key: 'QUAD_VCA',  id: 'qvca',    x: 230, y: 20,  jacks: [
+        { id: 'in1',  label: 'IN1',  type: 'in',    x: 12, y: 35 },
+        { id: 'in2',  label: 'IN2',  type: 'in',    x: 32, y: 35 },
+        { id: 'cv',   label: 'CV',   type: 'cv-in', x: 55, y: 35 },
+        { id: 'out',  label: 'OUT',  type: 'out',   x: 75, y: 35 },
+      ]},
+      { key: 'DUALFX',    id: 'dualfx',  x: 335, y: 20,  jacks: [
+        { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+        { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+      ]},
+      { key: 'LINEOUT',   id: 'lineout', x: 430, y: 20,  jacks: [
+        { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+      ]},
+      { key: 'MEGATANG',  id: 'mega',    x: 10,  y: 120, jacks: [
+        { id: 'in',    label: 'IN',     type: 'in',    x: 15, y: 35 },
+        { id: 'lvlcv', label: 'LVL CV', type: 'cv-in', x: 45, y: 35 },
+        { id: 'mix',   label: 'MIX',    type: 'out',   x: 80, y: 35 },
+      ]},
+      { key: 'GENERATE3', id: 'gen3',    x: 130, y: 120, jacks: [
+        { id: 'env',  label: 'ENV',  type: 'out', x: 48, y: 35 },
+      ]},
+      { key: 'QUAD_PLFO', id: 'plfo',    x: 250, y: 120, jacks: [
+        { id: 'out',  label: 'OUT',  type: 'out', x: 47, y: 35 },
+      ]},
+    ])} wires={[
+      { from: 'osiris.out', to: 'qratt.in',   type: 'audio' },
+      // Feedback loop — arc drawn above the Osiris module
+      { from: 'qratt.out',  to: 'osiris.fm',  type: 'audio', d: 'M193,55 C220,5 50,5 25,55' },
+      { from: 'osiris.out', to: 'mega.in',    type: 'audio', d: 'M75,55 L105,55 L105,108 L25,108 L25,155' },
+      { from: 'qratt.out',  to: 'qvca.in1',  type: 'audio' },
+      { from: 'mega.mix',   to: 'qvca.in2',  type: 'audio', via: [[90, 108], [262, 108]] },
+      { from: 'gen3.env',   to: 'qvca.cv',   type: 'mod',   via: [[178, 108], [285, 108]] },
+      { from: 'plfo.out',   to: 'qvca.cv',   type: 'mod',   via: [[297, 108], [285, 108]] },
+      { from: 'qvca.out',   to: 'dualfx.inl',type: 'audio' },
+      { from: 'dualfx.outl',to: 'lineout.inl',type:'audio', d: 'M403,55 L420,55 L420,65 L445,65' },
+    ]}
+  />
+)
 
-  <rect x="120" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="160" y="38" class="mod-text" text-anchor="middle">QUADRATT</text>
-  <circle cx="133" cy="55" r="5" class="jack-in"/><text x="133" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="193" cy="55" r="5" class="jack-out"/><text x="193" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="230" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="270" y="38" class="mod-text" text-anchor="middle">QUAD VCA</text>
-  <circle cx="243" cy="55" r="5" class="jack-in"/><text x="243" y="72" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="267" cy="55" r="5" style="fill:#333;stroke:#b040ff"/><text x="267" y="72" class="jack-label" text-anchor="middle">CV</text>
-  <circle cx="300" cy="55" r="5" class="jack-out"/><text x="300" y="72" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="335" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="375" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="348" cy="55" r="5" class="jack-in"/><text x="348" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="406" cy="55" r="5" class="jack-out"/><text x="406" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="430" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="465" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="465" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="443" cy="65" r="5" class="jack-in"/><text x="443" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="55" y="138" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="28" cy="158" r="5" class="jack-in"/><text x="28" y="175" class="jack-label" text-anchor="middle">IN</text>
-  <circle cx="55" cy="158" r="5" style="fill:#333;stroke:#b040ff"/><text x="55" y="175" class="jack-label" text-anchor="middle">LVL CV</text>
-  <circle cx="88" cy="158" r="5" class="jack-out"/><text x="88" y="175" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="130" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="175" y="138" class="mod-text" text-anchor="middle">GENERATE 3</text>
-  <circle cx="155" cy="158" r="5" class="jack-out"/><text x="155" y="175" class="jack-label" text-anchor="middle">ENV</text>
-
-  <rect x="250" y="120" width="90" height="70" rx="2" class="module-box"/>
-  <text x="295" y="138" class="mod-text" text-anchor="middle">QUAD PLFO</text>
-  <circle cx="295" cy="158" r="5" class="jack-out"/><text x="295" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <path d="M65,50 L65,43 L128,43 L128,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M193,50 C220,5 50,5 25,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M65,55 L115,55 L115,95 L28,95 L28,153" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M155,153 L155,108 L267,108 L267,50" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M295,153 L295,115 L267,115" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M193,55 L225,55 L225,44 L238,44 L238,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M88,153 L88,108 L243,108 L243,50" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M300,55 L330,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M406,55 L425,55 L425,65 L438,65" class="wire-audio" stroke-width="2" fill="none"/>
-  <text x="350" y="210" class="patch-note" text-anchor="middle">Dashed = CV modulation · Solid = audio · Feedback loop arcs above Osiris</text>
-</svg>`
-
-export const MODULATION_CROSSFADE = `<svg width="700" height="220" viewBox="0 0 700 220">
-  <rect x="10" y="20" width="100" height="70" rx="2" class="module-box-highlight"/>
-  <text x="60" y="38" class="mod-text" text-anchor="middle">QUAD PLFO</text>
-  <circle cx="23" cy="55" r="5" class="jack-out"/><text x="23" y="72" class="jack-label" text-anchor="middle">0.05Hz</text>
-  <circle cx="45" cy="55" r="5" class="jack-out"/><text x="45" y="72" class="jack-label" text-anchor="middle">0.07Hz</text>
-  <circle cx="68" cy="55" r="5" class="jack-out"/><text x="68" y="72" class="jack-label" text-anchor="middle">0.11Hz</text>
-  <circle cx="100" cy="55" r="5" class="jack-out"/><text x="100" y="72" class="jack-label" text-anchor="middle">0.13Hz</text>
-
-  <rect x="130" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="170" y="38" class="mod-text" text-anchor="middle">QUADRATT</text>
-  <circle cx="143" cy="48" r="5" class="jack-in"/><text x="143" y="64" class="jack-label" text-anchor="middle">IN1</text>
-  <circle cx="163" cy="48" r="5" class="jack-in"/><text x="163" y="64" class="jack-label" text-anchor="middle">IN2</text>
-  <circle cx="183" cy="48" r="5" class="jack-in"/><text x="183" y="64" class="jack-label" text-anchor="middle">IN3</text>
-  <circle cx="200" cy="48" r="5" class="jack-in"/><text x="200" y="64" class="jack-label" text-anchor="middle">IN4</text>
-  <circle cx="143" cy="74" r="5" class="jack-out"/><text x="143" y="88" class="jack-label" text-anchor="middle">1</text>
-  <circle cx="163" cy="74" r="5" class="jack-out"/><text x="163" y="88" class="jack-label" text-anchor="middle">2</text>
-  <circle cx="183" cy="74" r="5" class="jack-out"/><text x="183" y="88" class="jack-label" text-anchor="middle">3</text>
-  <circle cx="200" cy="74" r="5" class="jack-out"/><text x="200" y="88" class="jack-label" text-anchor="middle">4</text>
-
-  <rect x="240" y="20" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="285" y="38" class="mod-text" text-anchor="middle">MEGA-TANG</text>
-  <circle cx="255" cy="48" r="5" class="jack-in"/><text x="255" y="64" class="jack-label" text-anchor="middle">IN1</text>
-  <circle cx="272" cy="48" r="5" class="jack-in"/><text x="272" y="64" class="jack-label" text-anchor="middle">IN2</text>
-  <circle cx="290" cy="48" r="5" class="jack-in"/><text x="290" y="64" class="jack-label" text-anchor="middle">IN3</text>
-  <circle cx="308" cy="48" r="5" class="jack-in"/><text x="308" y="64" class="jack-label" text-anchor="middle">IN4</text>
-  <circle cx="255" cy="74" r="5" style="fill:#333;stroke:#b040ff"/><text x="255" y="88" class="jack-label" text-anchor="middle">L1</text>
-  <circle cx="272" cy="74" r="5" style="fill:#333;stroke:#b040ff"/><text x="272" y="88" class="jack-label" text-anchor="middle">L2</text>
-  <circle cx="290" cy="74" r="5" style="fill:#333;stroke:#b040ff"/><text x="290" y="88" class="jack-label" text-anchor="middle">L3</text>
-  <circle cx="308" cy="74" r="5" style="fill:#333;stroke:#b040ff"/><text x="308" y="88" class="jack-label" text-anchor="middle">L4</text>
-  <circle cx="322" cy="55" r="5" class="jack-out"/><text x="322" y="72" class="jack-label" text-anchor="middle">MIX</text>
-
-  <rect x="358" y="20" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="398" y="38" class="mod-text" text-anchor="middle">DUAL FX</text>
-  <circle cx="371" cy="55" r="5" class="jack-in"/><text x="371" y="72" class="jack-label" text-anchor="middle">INL</text>
-  <circle cx="429" cy="55" r="5" class="jack-out"/><text x="429" y="72" class="jack-label" text-anchor="middle">OUTL</text>
-
-  <rect x="452" y="20" width="70" height="70" rx="2" class="module-box"/>
-  <text x="487" y="38" class="mod-text" text-anchor="middle">LINE</text>
-  <text x="487" y="50" class="jack-label" text-anchor="middle">OUT 1U</text>
-  <circle cx="465" cy="65" r="5" class="jack-in"/><text x="465" y="82" class="jack-label" text-anchor="middle">INL</text>
-
-  <rect x="10" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="50" y="138" class="mod-text" text-anchor="middle">OSIRIS</text>
-  <circle cx="50" cy="158" r="5" class="jack-out"/><text x="50" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="115" y="120" width="80" height="70" rx="2" class="module-box-highlight"/>
-  <text x="155" y="138" class="mod-text" text-anchor="middle">RAMPLE</text>
-  <circle cx="155" cy="158" r="5" class="jack-out"/><text x="155" y="175" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="220" y="120" width="95" height="70" rx="2" class="module-box-highlight"/>
-  <text x="267" y="135" class="mod-text" text-anchor="middle">SQUAWK</text>
-  <text x="267" y="147" class="jack-label" text-anchor="middle">DIRTY</text>
-  <circle cx="267" cy="163" r="5" class="jack-out"/><text x="267" y="180" class="jack-label" text-anchor="middle">OUT</text>
-
-  <rect x="340" y="120" width="90" height="70" rx="2" class="module-box-highlight"/>
-  <text x="385" y="138" class="mod-text" text-anchor="middle">GENERATE 3</text>
-  <circle cx="385" cy="158" r="5" class="jack-out"/><text x="385" y="175" class="jack-label" text-anchor="middle">AUDIO</text>
-
-  <path d="M23,50 L23,43 L138,43 L138,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M45,50 L45,38 L163,38 L163,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M68,50 L68,33 L183,33 L183,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M100,50 L100,28 L200,28 L200,43" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M143,74 L143,95 L255,95 L255,74" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M163,74 L163,98 L272,98 L272,74" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M183,74 L183,102 L290,102 L290,74" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M200,74 L200,106 L308,106 L308,74" class="wire-mod" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
-  <path d="M50,153 L50,108 L255,108 L255,53" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M155,153 L155,112 L272,112 L272,53" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M267,158 L267,116 L290,116 L290,53" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M385,153 L385,120 L308,120 L308,53" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M322,55 L353,55" class="wire-audio" stroke-width="2" fill="none"/>
-  <path d="M429,55 L447,55 L447,65 L460,65" class="wire-audio" stroke-width="2" fill="none"/>
-  <text x="350" y="210" class="patch-note" text-anchor="middle">4 LFOs at different rates crossfade 4 sources · Dashed = CV · Solid = audio</text>
-</svg>`
+export const MODULATION_CROSSFADE = (
+  <PatchDiagram
+    note="4 LFOs at different rates crossfade 4 sources · Dashed = CV · Solid = audio"
+    modules={place([
+      { key: 'QUAD_PLFO', id: 'plfo',    x: 10,  y: 20,  w: 100, highlight: true, jacks: [
+        { id: 'out1', label: '0.05Hz', type: 'out', x: 13, y: 35 },
+        { id: 'out2', label: '0.07Hz', type: 'out', x: 35, y: 35 },
+        { id: 'out3', label: '0.11Hz', type: 'out', x: 58, y: 35 },
+        { id: 'out4', label: '0.13Hz', type: 'out', x: 90, y: 35 },
+      ]},
+      { key: 'QUADRATT',  id: 'qratt',   x: 130, y: 20,  jacks: [
+        { id: 'in1',  label: 'IN1',  type: 'in',  x: 12, y: 28 },
+        { id: 'in2',  label: 'IN2',  type: 'in',  x: 33, y: 28 },
+        { id: 'in3',  label: 'IN3',  type: 'in',  x: 54, y: 28 },
+        { id: 'in4',  label: 'IN4',  type: 'in',  x: 70, y: 28 },
+        { id: 'out1', label: '1',    type: 'out', x: 12, y: 54 },
+        { id: 'out2', label: '2',    type: 'out', x: 33, y: 54 },
+        { id: 'out3', label: '3',    type: 'out', x: 54, y: 54 },
+        { id: 'out4', label: '4',    type: 'out', x: 70, y: 54 },
+      ]},
+      { key: 'MEGATANG',  id: 'mega',    x: 240, y: 20,  jacks: [
+        { id: 'in1',  label: 'IN1',  type: 'in',    x: 15, y: 28 },
+        { id: 'in2',  label: 'IN2',  type: 'in',    x: 32, y: 28 },
+        { id: 'in3',  label: 'IN3',  type: 'in',    x: 50, y: 28 },
+        { id: 'in4',  label: 'IN4',  type: 'in',    x: 68, y: 28 },
+        { id: 'l1',   label: 'L1',   type: 'cv-in', x: 15, y: 54 },
+        { id: 'l2',   label: 'L2',   type: 'cv-in', x: 32, y: 54 },
+        { id: 'l3',   label: 'L3',   type: 'cv-in', x: 50, y: 54 },
+        { id: 'l4',   label: 'L4',   type: 'cv-in', x: 68, y: 54 },
+        { id: 'mix',  label: 'MIX',  type: 'out',   x: 82, y: 35 },
+      ]},
+      { key: 'DUALFX',    id: 'dualfx',  x: 358, y: 20,  jacks: [
+        { id: 'inl',  label: 'INL',  type: 'in',  x: 12, y: 35 },
+        { id: 'outl', label: 'OUTL', type: 'out', x: 68, y: 35 },
+      ]},
+      { key: 'LINEOUT',   id: 'lineout', x: 452, y: 20,  jacks: [
+        { id: 'inl',  label: 'INL',  type: 'in',  x: 15, y: 45 },
+      ]},
+      { key: 'OSIRIS',    id: 'osiris',  x: 10,  y: 120, jacks: [
+        { id: 'out',  label: 'OUT',  type: 'out', x: 40, y: 35 },
+      ]},
+      { key: 'RAMPLE',    id: 'rample',  x: 115, y: 120, jacks: [
+        { id: 'out',  label: 'OUT',  type: 'out', x: 40, y: 35 },
+      ]},
+      { key: 'SQUAWK',    id: 'squawk',  x: 220, y: 120, jacks: [
+        { id: 'out',  label: 'OUT',  type: 'out', x: 47, y: 40 },
+      ]},
+      { key: 'GENERATE3', id: 'gen3',    x: 340, y: 120, jacks: [
+        { id: 'out',  label: 'AUDIO', type: 'out', x: 45, y: 35 },
+      ]},
+    ])} wires={[
+      // LFOs → Quadratt attenuverters
+      { from: 'plfo.out1', to: 'qratt.in1', type: 'mod', d: 'M23,55 L23,43 L142,43 L142,48' },
+      { from: 'plfo.out2', to: 'qratt.in2', type: 'mod', d: 'M45,55 L45,38 L163,38 L163,48' },
+      { from: 'plfo.out3', to: 'qratt.in3', type: 'mod', d: 'M68,55 L68,33 L184,33 L184,48' },
+      { from: 'plfo.out4', to: 'qratt.in4', type: 'mod', d: 'M100,55 L100,28 L200,28 L200,48' },
+      // Quadratt outputs → MEGA-TANG level CVs
+      { from: 'qratt.out1', to: 'mega.l1', type: 'mod', d: 'M142,74 L142,95 L255,95 L255,74' },
+      { from: 'qratt.out2', to: 'mega.l2', type: 'mod', d: 'M163,74 L163,98 L272,98 L272,74' },
+      { from: 'qratt.out3', to: 'mega.l3', type: 'mod', d: 'M184,74 L184,102 L290,102 L290,74' },
+      { from: 'qratt.out4', to: 'mega.l4', type: 'mod', d: 'M200,74 L200,106 L308,106 L308,74' },
+      // Audio sources → MEGA-TANG inputs
+      { from: 'osiris.out', to: 'mega.in1', type: 'audio', via: [[50, 108], [255, 108]] },
+      { from: 'rample.out', to: 'mega.in2', type: 'audio', via: [[155, 108], [272, 108]] },
+      { from: 'squawk.out', to: 'mega.in3', type: 'audio', via: [[267, 108], [290, 108]] },
+      { from: 'gen3.out',   to: 'mega.in4', type: 'audio', via: [[385, 108], [308, 108]] },
+      // Output chain
+      { from: 'mega.mix',   to: 'dualfx.inl',  type: 'audio' },
+      { from: 'dualfx.outl',to: 'lineout.inl', type: 'audio', d: 'M426,55 L444,55 L444,65 L467,65' },
+    ]}
+  />
+)
