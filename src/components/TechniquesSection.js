@@ -94,11 +94,11 @@ export default function TechniquesSection() {
         <summary>Mimetic Digitalis + Steppy 1U: Sequencer Ecosystem</summary>
         <div>
           <div className="callout">
-            <strong>Key Insight:</strong> Mimetic Digitalis outputs 4 channels of CV (no gates). Steppy 1U outputs 4 channels of gates (and CV). Bloom outputs CV + gates with mutation. Use them for different tasks rather than competing.
+            <strong>Key Insight:</strong> Mimetic Digitalis outputs 4 channels of CV (no gates). Steppy 1U outputs 4 channels of gates (no CV). Bloom outputs CV + gates with mutation. Use them for different tasks rather than competing.
           </div>
           <ul style={{ color: 'var(--text-muted)', fontSize: 14, paddingLeft: 20, marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <li><strong style={{ color: 'var(--text)' }}>Mimetic for Modulation:</strong> Use Mimetic&apos;s 4 CV channels to modulate filter cutoff, LFO rate, MEGA-TANG level CVs, reverb mix — parameters that don&apos;t need gates.</li>
-            <li><strong style={{ color: 'var(--text)' }}>Steppy for Rhythm:</strong> Use Steppy&apos;s gates to trigger envelopes and drums, and its CV output for a simple, locked melodic phrase.</li>
+            <li><strong style={{ color: 'var(--text)' }}>Steppy for Rhythm:</strong> Use Steppy&apos;s gates to trigger envelopes and drums. For pitch CV alongside Steppy rhythms, pair it with Mimetic Digitalis running at the same length.</li>
             <li><strong style={{ color: 'var(--text)' }}>Bloom for Lead:</strong> Reserve Bloom for the main melodic voice that evolves over time.</li>
             <li><strong style={{ color: 'var(--text)' }}>Different Lengths:</strong> Set Mimetic to 16 steps, Steppy to 8, Bloom to 12. The sequences drift in and out of phase, creating ever-changing combinations.</li>
           </ul>

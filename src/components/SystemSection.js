@@ -40,7 +40,7 @@ export default function SystemSection() {
         <div className="rack-row">
           <RackModule flex={4} type="util" label="USB Power" title="USB power" />
           <RackModule flex={14} type="util" label="Buff Mult 1U" title="Passive buffered multiple — duplicate signals without voltage loss" refId="ref-buffmult" />
-          <RackModule flex={28} type="seq" label="Steppy 1U" title="4-track step sequencer — 1U powerhouse for CV/gate patterns" refId="ref-steppy" />
+          <RackModule flex={28} type="seq" label="Steppy 1U" title="4-track step sequencer — 1U powerhouse for gate patterns" refId="ref-steppy" />
           <RackModule flex={28} type="util" label="Quadratt 1U" title="4x attenuverter/mixer — scale, invert, and mix CV signals" refId="ref-quadratt" />
           <RackModule flex={8} type="util" label="Stereo Out 1U" title="Stereo line out — send your patch to your audio interface" refId="ref-stereoout" />
         </div>

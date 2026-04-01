@@ -194,7 +194,7 @@ const AMBIENT_PATCHES = [
       'Patch a very slow trigger from <span class="module-ref">Pamela\'s PRO</span> (÷32 or ÷64) → <span class="module-ref">ForeCastle</span> GATE 1. Set channel 1 to AD mode, attack ~500ms, decay ~1s.',
       'Patch <span class="module-ref">ForeCastle</span> End-of-Cycle 1 → GATE 2. Channel 2: attack ~300ms, decay ~800ms. Patch End-of-Cycle 2 → GATE 3. Channel 3: attack ~200ms, decay ~600ms.',
       'Route the four ENV outputs: ENV 1 → <span class="module-ref">A-101-2v LPG</span> CTRL. ENV 2 → <span class="module-ref">Osiris</span> MORPH CV through Quadratt. ENV 3 → <span class="module-ref">Squawk Dirty To Me</span> CUTOFF CV. ENV 4 → <span class="module-ref">MEGA-TANG</span> Level CV.',
-      'Patch <span class="module-ref">Osiris</span> audio → LPG audio in. LPG out → Squawk Dirty → <span class="module-ref">MEGA-TANG</span> channel 1. Use <span class="module-ref">Steppy 1U</span> to provide occasional pitch CV to Osiris V/OCT.',
+      'Patch <span class="module-ref">Osiris</span> audio → LPG audio in. LPG out → Squawk Dirty → <span class="module-ref">MEGA-TANG</span> channel 1. Use <span class="module-ref">Steppy 1U</span> gates to trigger ForeCastle at occasional steps, or program a sparse gate pattern on a second Steppy track to trigger random note changes via <span class="module-ref">Mimetic Digitalis</span> CV → Osiris V/OCT.',
       'MEGA-TANG stereo mix → <span class="module-ref">Dual FX</span> (long reverb with high decay time). Out → <span class="module-ref">Stereo Line Out 1U</span>.',
     ],
     tip: 'Try patching ForeCastle ENV 2 output back into its own DCY CV input (through Quadratt, attenuated). The envelope shortens itself as it rises — a natural, logarithmic shape that sounds more acoustic than linear decay.',
@@ -225,7 +225,7 @@ const TECHNO_PATCHES = [
     desc: 'Rample drives the kick drum, Osiris handles the bass sequence via Steppy 1U, and MEGA-TANG mixes and pans all voices into a tight stereo output. Squawk Dirty To Me filters the bass with resonant dirt.',
     steps: [
       'Set <span class="module-ref">Pamela\'s PRO Workout</span> to 130–140 BPM. Configure: OUT 1 = master clock (16th notes), OUT 2 = ÷4 (quarter notes), OUT 3 = kick pattern.',
-      'Patch Pamela\'s clock → <span class="module-ref">Steppy 1U</span> clock. Program a bass pattern. Patch Steppy GATE → <span class="module-ref">Generate 3</span> trigger, Steppy CV → <span class="module-ref">Osiris</span> V/OCT.',
+      'Patch Pamela\'s clock → <span class="module-ref">Steppy 1U</span> clock and <span class="module-ref">Mimetic Digitalis</span> clock. Program a bass gate pattern on Steppy (8–16 steps). Program matching pitch values on Mimetic Digitalis CH1. Patch Steppy GATE 1 → <span class="module-ref">Generate 3</span> trigger, Mimetic Digitalis CH1 → <span class="module-ref">Osiris</span> V/OCT.',
       '<span class="module-ref">Generate 3</span>: set a short sharp envelope (fast attack, medium decay, no sustain). Patch ENV output → <span class="module-ref">Quad VCA</span> CV.',
       'Patch <span class="module-ref">Osiris</span> audio out → <span class="module-ref">Squawk Dirty To Me</span> filter input, then out → <span class="module-ref">MEGA-TANG</span> channel 1.',
       'Patch Pamela\'s kick output → <span class="module-ref">Rample</span> T1 and T2. Load kick and snare. Mix Rample output into Quad VCA channel 2.',
@@ -255,7 +255,7 @@ const TECHNO_PATCHES = [
     tags: ['techno', 'melodic', 'intermediate'],
     desc: 'A raw, minimalist bass patch designed for the dark end of the techno spectrum. Sparse Steppy gate patterns, heavy Squawk Dirty filter resonance, and ForeCastle\'s pitch-drop envelope give it an aggressive, sub-heavy character.',
     steps: [
-      'Program <span class="module-ref">Steppy 1U</span> with a sparse bass pattern — only 3–4 active steps over 16. Set CV values to low pitches (C1–C2 range). Patch Steppy CV → <span class="module-ref">Osiris</span> V/OCT.',
+      'Program <span class="module-ref">Steppy 1U</span> with a sparse gate pattern — only 3–4 active steps over 16. Patch the clock to both Steppy and <span class="module-ref">Mimetic Digitalis</span>. Program Mimetic Digitalis CH1 with low pitches (C1–C2 range, 3–4 values). Patch Steppy GATE 1 → <span class="module-ref">ForeCastle</span> GATE 1, Mimetic Digitalis CH1 → <span class="module-ref">Osiris</span> V/OCT.',
       '<span class="module-ref">ForeCastle</span> channel 1: AD mode, instant attack, medium decay (~300ms). ENV 1 → <span class="module-ref">Osiris</span> V/OCT through Quadratt (attenuate to ~0.3V). The note starts sharp and falls — a pitch-drop transient.',
       '<span class="module-ref">ForeCastle</span> channel 2: AD mode, fast attack, long decay (~600ms). ENV 2 → <span class="module-ref">Quad VCA</span> CV. This is the amplitude envelope.',
       'Patch <span class="module-ref">Osiris</span> audio → <span class="module-ref">Quad VCA</span> → <span class="module-ref">Squawk Dirty To Me</span>. Set filter to low cutoff with high resonance (~70%). ForeCastle channel 3 with fast envelope → Squawk Dirty CUTOFF CV.',
@@ -291,7 +291,7 @@ const GENERATIVE_PATCHES = [
     steps: [
       'Set <span class="module-ref">Pamela\'s PRO</span> to a moderate tempo (90–110 BPM), 16th-note clock out. Mult the clock (via <span class="module-ref">Buff Mult 1U</span>) to all three sequencers.',
       'Set <span class="module-ref">Bloom</span> to 12 steps in a pentatonic scale. Bloom CV → <span class="module-ref">Osiris</span> V/OCT. Bloom GATE → <span class="module-ref">ForeCastle</span> GATE 1.',
-      'Set <span class="module-ref">Steppy 1U</span> to 8 steps with a syncopated gate pattern. Steppy GATE → <span class="module-ref">Rample</span> T1. Steppy CV → <span class="module-ref">Osiris</span> V/OCT summed with Bloom via Quadratt.',
+      'Set <span class="module-ref">Steppy 1U</span> to 8 steps with a syncopated gate pattern. Steppy GATE 1 → <span class="module-ref">Rample</span> T1. Steppy GATE 2 → a second drum voice on Rample. Bloom CV already handles Osiris V/OCT.',
       'Set <span class="module-ref">Mimetic Digitalis</span> to 9 steps. Program CH1 as a slow filter curve, CH2 as volume automation. Route: CH1 → <span class="module-ref">Squawk Dirty</span> CUTOFF, CH2 → <span class="module-ref">MEGA-TANG</span> Level CV.',
       'ForeCastle ENV 1 → <span class="module-ref">Quad VCA</span> CV. Osiris audio → Quad VCA → Squawk Dirty → MEGA-TANG. Rample mix → MEGA-TANG. MEGA-TANG → Dual FX → <span class="module-ref">Stereo Line Out 1U</span>.',
     ],

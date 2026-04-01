@@ -30,14 +30,22 @@ const JACK_CLASS = {
 }
 
 // cv-in uses a custom purple that has no CSS class — handled inline
-const CV_IN_STYLE = { fill: '#333', stroke: '#b040ff', strokeWidth: 1.5 }
+const CV_IN_STYLE = { fill: '#1e1e1e', stroke: '#b040ff', strokeWidth: 1.5 }
 
 const WIRE = {
-  audio: { className: 'wire-audio', strokeWidth: 2,   strokeDasharray: undefined },
-  mod:   { className: 'wire-mod',   strokeWidth: 1.5, strokeDasharray: '4,3' },
-  gate:  { className: 'wire-gate',  strokeWidth: 1.5, strokeDasharray: undefined },
-  cv:    { className: 'wire-cv',    strokeWidth: 1.5, strokeDasharray: '4,3' },
+  audio: { className: 'wire-audio', strokeWidth: 2,   strokeDasharray: undefined, marker: 'arrow-audio' },
+  mod:   { className: 'wire-mod',   strokeWidth: 1.5, strokeDasharray: '4,3',     marker: 'arrow-mod'   },
+  gate:  { className: 'wire-gate',  strokeWidth: 1.5, strokeDasharray: undefined, marker: 'arrow-gate'  },
+  cv:    { className: 'wire-cv',    strokeWidth: 1.5, strokeDasharray: '4,3',     marker: 'arrow-cv'   },
 }
+
+// Arrow marker definitions — one per wire color
+const MARKERS = [
+  { id: 'arrow-audio', color: '#fb923c' },
+  { id: 'arrow-mod',   color: '#a78bfa' },
+  { id: 'arrow-gate',  color: '#34d399' },
+  { id: 'arrow-cv',    color: '#60a5fa' },
+]
 
 function buildPath(from, to, via, rawD) {
   if (rawD) return rawD
@@ -63,6 +71,14 @@ export default function PatchDiagram({ modules = [], wires = [], width = 700, he
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <defs>
+        {MARKERS.map(({ id, color }) => (
+          <marker key={id} id={id} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill={color} />
+          </marker>
+        ))}
+      </defs>
+
       {/* ── Modules ── */}
       {modules.map(m => (
         <g key={m.id}>
@@ -110,6 +126,7 @@ export default function PatchDiagram({ modules = [], wires = [], width = 700, he
             className={style.className}
             strokeWidth={style.strokeWidth}
             strokeDasharray={style.strokeDasharray}
+            markerEnd={style.marker ? `url(#${style.marker})` : undefined}
           />
         )
       })}
